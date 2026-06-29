@@ -23,10 +23,13 @@ db.exec([
   "  public_key TEXT DEFAULT '',",
   '  doxiki_balance INTEGER DEFAULT 0,',
   '  is_admin INTEGER DEFAULT 0,',
+  '  is_anon_plus INTEGER DEFAULT 0,',
   "  profile_bg_color TEXT DEFAULT '#20242b',",
   "  profile_bg_emoji TEXT DEFAULT '',",
   "  profile_music_title TEXT DEFAULT '',",
   "  profile_music_url TEXT DEFAULT '',",
+  "  profile_music_cover TEXT DEFAULT '',",
+  "  profile_music_artist TEXT DEFAULT '',",
   '  created_at INTEGER DEFAULT (unixepoch())',
   ');',
   '',
@@ -61,7 +64,7 @@ db.exec([
   '  sender_id TEXT NOT NULL,',
   '  content TEXT NOT NULL,',
   '  iv TEXT,',
-  '  encrypted INTEGER DEFAULT 1,',
+  '  encrypted INTEGER DEFAULT 0,',
   '  created_at INTEGER DEFAULT (unixepoch()),',
   '  FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,',
   '  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE',
@@ -75,6 +78,9 @@ db.exec([
   '  price INTEGER NOT NULL DEFAULT 0,',
   '  owner_id TEXT,',
   '  profile_visible INTEGER DEFAULT 0,',
+  '  total_supply INTEGER DEFAULT 1,',
+  '  sold_count INTEGER DEFAULT 0,',
+  "  template_id TEXT DEFAULT '',",
   '  created_by TEXT,',
   '  created_at INTEGER DEFAULT (unixepoch()),',
   '  purchased_at INTEGER,',
@@ -103,23 +109,18 @@ ensureColumn('users', 'bubble_style', "bubble_style TEXT DEFAULT 'rounded'");
 ensureColumn('users', 'public_key', "public_key TEXT DEFAULT ''");
 ensureColumn('users', 'doxiki_balance', 'doxiki_balance INTEGER DEFAULT 0');
 ensureColumn('users', 'is_admin', 'is_admin INTEGER DEFAULT 0');
+ensureColumn('users', 'is_anon_plus', 'is_anon_plus INTEGER DEFAULT 0');
+ensureColumn('users', 'admin_permissions', "admin_permissions TEXT DEFAULT '{}'");
 ensureColumn('users', 'profile_bg_color', "profile_bg_color TEXT DEFAULT '#20242b'");
 ensureColumn('users', 'profile_bg_emoji', "profile_bg_emoji TEXT DEFAULT ''");
 ensureColumn('users', 'profile_music_title', "profile_music_title TEXT DEFAULT ''");
 ensureColumn('users', 'profile_music_url', "profile_music_url TEXT DEFAULT ''");
-ensureColumn('messages', 'encrypted', 'encrypted INTEGER DEFAULT 0');
-ensureColumn('nft_items', 'profile_visible', 'profile_visible INTEGER DEFAULT 0');
 ensureColumn('users', 'profile_music_cover', "profile_music_cover TEXT DEFAULT ''");
 ensureColumn('users', 'profile_music_artist', "profile_music_artist TEXT DEFAULT ''");
+ensureColumn('messages', 'encrypted', 'encrypted INTEGER DEFAULT 0');
+ensureColumn('nft_items', 'profile_visible', 'profile_visible INTEGER DEFAULT 0');
 ensureColumn('nft_items', 'total_supply', 'total_supply INTEGER DEFAULT 1');
 ensureColumn('nft_items', 'sold_count', 'sold_count INTEGER DEFAULT 0');
 ensureColumn('nft_items', 'template_id', "template_id TEXT DEFAULT ''");
-
-db.exec([
-  'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at);',
-  'CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);',
-  'CREATE INDEX IF NOT EXISTS idx_users_search ON users(username, display_name);',
-  'CREATE INDEX IF NOT EXISTS idx_nft_market ON nft_items(owner_id, type, created_at);'
-].join('\n'));
 
 module.exports = db;
