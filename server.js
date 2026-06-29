@@ -9,6 +9,7 @@ const path = require('path');
 const fsSync = require('fs');
 const os = require('os');
 const db = require('./db');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,24 +20,27 @@ const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const ADMIN_USERNAME = 'sinagoga322';
 const PUBLIC_DIR = path.join(__dirname, 'Public');
-const UPLOAD_DIR = path.join(__dirname, 'uploads');
 
-if (!fsSync.existsSync(UPLOAD_DIR)) {
-  fsSync.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Инициализация Supabase клиента
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+} else {
+  console.warn('⚠️ Внимание: Переменные SUPABASE_URL и SUPABASE_KEY не заданы. Загрузка файлов не будет работать!');
 }
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(PUBLIC_DIR));
-app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.get('/api/server-info', (_req, res) => {
   res.json(serverInfo(app.locals.port || PORT));
 });
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => cb(null, randomUUID() + path.extname(file.originalname || '.png'))
-});
+// Храним файлы в оперативной памяти перед отправкой в Supabase
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -59,6 +63,35 @@ const audioUpload = multer({
     cb(null, true);
   }
 });
+
+// Функция для загрузки буфера файла напрямую в Supabase Storage
+async function uploadToSupabase(file, folder = 'common') {
+  if (!supabase) {
+    throw new Error('Supabase не сконфигурирован на сервере');
+  }
+
+  const fileExt = path.extname(file.originalname || '.png');
+  const fileName = `${folder}/${randomUUID()}${fileExt}`;
+
+  const { data, error } = await supabase.storage
+    .from('uploads')
+    .upload(fileName, file.buffer, {
+      contentType: file.mimetype,
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  // Получаем публичную ссылку на файл
+  const { data: publicUrlData } = supabase.storage
+    .from('uploads')
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+}
 
 const onlineUsers = new Map();
 const activeCalls = new Map();
@@ -314,7 +347,6 @@ app.put('/api/profile', auth, (req, res) => {
 
   const hasPlus = Boolean(Number(current.is_anon_plus) || isAdminUser(current));
 
-  // Free users can only change display_name and avatar
   const next = {
     display_name: clean(req.body.display_name || current.display_name, 48),
     bio: hasPlus ? clean(req.body.bio ?? current.bio, 180) : (current.bio || ''),
@@ -348,25 +380,40 @@ app.put('/api/profile', auth, (req, res) => {
   res.json({ ok: true, user: publicUser(getUserById(req.user.id)) });
 });
 
-app.post('/api/avatar', auth, upload.single('avatar'), (req, res) => {
+app.post('/api/avatar', auth, upload.single('avatar'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Выбери изображение' });
-  const avatar = '/uploads/' + req.file.filename;
-  db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(avatar, req.user.id);
-  res.json({ avatar, user: publicUser(getUserById(req.user.id)) });
+  try {
+    const avatarUrl = await uploadToSupabase(req.file, 'avatars');
+    db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(avatarUrl, req.user.id);
+    res.json({ avatar: avatarUrl, user: publicUser(getUserById(req.user.id)) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Не удалось загрузить аватарку в Supabase' });
+  }
 });
 
-app.post('/api/profile/music', auth, audioUpload.single('music'), (req, res) => {
+app.post('/api/profile/music', auth, audioUpload.single('music'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Выбери аудио-файл' });
-  const music = '/uploads/' + req.file.filename;
-  db.prepare('UPDATE users SET profile_music_url = ? WHERE id = ?').run(music, req.user.id);
-  res.json({ music, user: publicUser(getUserById(req.user.id)) });
+  try {
+    const musicUrl = await uploadToSupabase(req.file, 'music');
+    db.prepare('UPDATE users SET profile_music_url = ? WHERE id = ?').run(musicUrl, req.user.id);
+    res.json({ music: musicUrl, user: publicUser(getUserById(req.user.id)) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Не удалось загрузить аудио в Supabase' });
+  }
 });
 
-app.post('/api/profile/music-cover', auth, upload.single('cover'), (req, res) => {
+app.post('/api/profile/music-cover', auth, upload.single('cover'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Выбери изображение обложки' });
-  const cover = '/uploads/' + req.file.filename;
-  db.prepare('UPDATE users SET profile_music_cover = ? WHERE id = ?').run(cover, req.user.id);
-  res.json({ cover, user: publicUser(getUserById(req.user.id)) });
+  try {
+    const coverUrl = await uploadToSupabase(req.file, 'covers');
+    db.prepare('UPDATE users SET profile_music_cover = ? WHERE id = ?').run(coverUrl, req.user.id);
+    res.json({ cover: coverUrl, user: publicUser(getUserById(req.user.id)) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Не удалось загрузить обложку в Supabase' });
+  }
 });
 
 // ===== MARKETPLACE =====
@@ -470,7 +517,7 @@ app.put('/api/profile/nfts/:itemId', auth, (req, res) => {
 });
 
 // ===== ADMIN =====
-app.post('/api/admin/nft-gifts', auth, adminOnly, upload.single('image'), (req, res) => {
+app.post('/api/admin/nft-gifts', auth, adminOnly, upload.single('image'), async (req, res) => {
   const perms = getAdminPerms(req.adminUser);
   if (!perms.nfts) return res.status(403).json({ error: 'У тебя нет права создавать NFT' });
 
@@ -481,18 +528,24 @@ app.post('/api/admin/nft-gifts', auth, adminOnly, upload.single('image'), (req, 
   if (price === null) return res.status(400).json({ error: 'Укажи цену в доксиках' });
   if (!req.file) return res.status(400).json({ error: 'Загрузи фото NFT подарка' });
 
-  const item = {
-    id: randomUUID(), type: 'gift', title,
-    image: '/uploads/' + req.file.filename, price,
-    total_supply: quantity, sold_count: 0
-  };
+  try {
+    const nftImageUrl = await uploadToSupabase(req.file, 'nfts');
+    const item = {
+      id: randomUUID(), type: 'gift', title,
+      image: nftImageUrl, price,
+      total_supply: quantity, sold_count: 0
+    };
 
-  db.prepare([
-    'INSERT INTO nft_items (id, type, title, image, price, total_supply, sold_count, created_by)',
-    'VALUES (?, ?, ?, ?, ?, ?, 0, ?)'
-  ].join(' ')).run(item.id, item.type, item.title, item.image, item.price, item.total_supply, req.user.id);
+    db.prepare([
+      'INSERT INTO nft_items (id, type, title, image, price, total_supply, sold_count, created_by)',
+      'VALUES (?, ?, ?, ?, ?, ?, 0, ?)'
+    ].join(' ')).run(item.id, item.type, item.title, item.image, item.price, item.total_supply, req.user.id);
 
-  res.json({ ok: true, item: nftItem(item) });
+    res.json({ ok: true, item: nftItem(item) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Не удалось загрузить изображение NFT в Supabase' });
+  }
 });
 
 app.post('/api/admin/nft-assets', auth, adminOnly, (req, res) => {
@@ -874,7 +927,6 @@ io.on('connection', (socket) => {
     sockets.delete(socket.id);
     if (!sockets.size) {
       onlineUsers.delete(socket.user.id);
-      // End any active calls
       const call = activeCalls.get(socket.user.id);
       if (call) {
         activeCalls.delete(socket.user.id);
