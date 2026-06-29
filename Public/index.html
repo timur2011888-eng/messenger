@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мессенджер</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #101114;
+      --panel: #181a1f;
+      --panel-2: #20242b;
+      --field: #222730;
+      --text: #f4f6f8;
+      --muted: #98a1ad;
+      --line: #2b313a;
+      --accent: #2f8fed;
+      --accent-text: #ffffff;
+      --good: #43c478;
+      --danger: #ff6b6b;
+      --bubble-other: #242a33;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+      --wallpaper: repeating-linear-gradient(135deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 22px);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body.theme-day {
+      --bg: #eef2f5;
+      --panel: #ffffff;
+      --panel-2: #f5f7fa;
+      --field: #edf1f5;
+      --text: #18212c;
+      --muted: #687586;
+      --line: #dce3ea;
+      --bubble-other: #eef1f4;
+      --shadow: 0 18px 50px rgba(24, 33, 44, 0.16);
+    }
+
+    body.theme-forest {
+      --bg: #101713;
+      --panel: #17211c;
+      --panel-2: #1e2a24;
+      --field: #223029;
+      --text: #f3f8f4;
+      --muted: #9eb0a5;
+      --line: #2d3d34;
+      --bubble-other: #223029;
+    }
+
+    body.theme-rose {
+      --bg: #171315;
+      --panel: #21191d;
+      --panel-2: #2a2025;
+      --field: #30252b;
+      --text: #fff6f8;
+      --muted: #b5a0a8;
+      --line: #3d3036;
+      --bubble-other: #30252b;
+    }
+
+    body.wallpaper-clean { --wallpaper: none; }
+    body.wallpaper-lines { --wallpaper: repeating-linear-gradient(135deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 22px); }
+    body.wallpaper-grid { --wallpaper: linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); }
+    body.wallpaper-dots { --wallpaper: radial-gradient(circle, rgba(255,255,255,0.13) 1px, transparent 1.5px); }
+
+    html, body { margin: 0; height: 100%; }
+    body { background: var(--bg); color: var(--text); overflow: hidden; }
+    button, input, textarea, select { font: inherit; }
+    button { color: inherit; }
+    [hidden] { display: none !important; }
+
+    .auth-shell {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(135deg, rgba(47,143,237,0.16), transparent 42%),
+        linear-gradient(225deg, rgba(67,196,120,0.12), transparent 40%),
+        var(--bg);
+    }
+
+    .auth-panel {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .auth-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+    .auth-brand h1 { margin: 0; font-size: 24px; line-height: 1.1; }
+    .auth-brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 4px;
+      margin-bottom: 18px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .segmented button {
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .segmented button.active { background: var(--accent); color: var(--accent-text); }
+
+    .form-stack { display: grid; gap: 12px; }
+    .field { display: grid; gap: 6px; }
+    .field span { color: var(--muted); font-size: 13px; }
+    input, textarea, select {
+      width: 100%;
+      color: var(--text);
+      background: var(--field);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      outline: none;
+    }
+    textarea { min-height: 84px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 24%, transparent); }
+
+    .primary-btn, .secondary-btn, .icon-btn, .chip-btn, .chat-row, .user-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .primary-btn {
+      min-height: 44px;
+      padding: 0 16px;
+      background: var(--accent);
+      color: var(--accent-text);
+      border-color: transparent;
+      font-weight: 700;
+    }
+    .secondary-btn { min-height: 42px; padding: 0 14px; background: var(--panel-2); color: var(--text); }
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      background: var(--panel-2);
+      color: var(--muted);
+      flex: 0 0 auto;
+    }
+    .icon-btn:hover, .secondary-btn:hover, .chat-row:hover, .user-row:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+    .primary-btn:disabled, .secondary-btn:disabled, .icon-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    .error-text { min-height: 18px; color: var(--danger); font-size: 13px; }
+    .hint-text { color: var(--muted); font-size: 13px; line-height: 1.45; }
+    .server-links {
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .server-links strong { color: var(--text); }
+    .server-links a {
+      display: block;
+      margin-top: 6px;
+      color: var(--accent);
+      overflow-wrap: anywhere;
+      text-decoration: none;
+    }
+    .server-links a:hover { text-decoration: underline; }
+
+    #app { height: 100vh; }
+    .layout {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(300px, 370px) minmax(0, 1fr);
+      background: var(--bg);
+    }
+
+    .sidebar {
+      min-width: 0;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-top {
+      min-height: 84px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    .profile-chip {
+      min-width: 0;
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 5px;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      text-align: left;
+      cursor: pointer;
+    }
+    .profile-chip:hover { background: var(--panel-2); border-color: var(--line); }
+    .profile-name, .profile-username, .chat-name, .chat-preview, .user-name, .user-meta { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .profile-name { font-weight: 750; }
+    .profile-username, .user-meta { color: var(--muted); font-size: 13px; }
+    .sidebar-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 34px);
+      gap: 6px;
+      flex: 0 0 auto;
+    }
+    .sidebar-actions .icon-btn { width: 34px; height: 34px; font-size: 14px; }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--accent-text);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar.large { width: 96px; height: 96px; font-size: 30px; border: 3px solid var(--accent); }
+    .avatar.small { width: 38px; height: 38px; font-size: 14px; }
+
+    .search-wrap { padding: 12px; border-bottom: 1px solid var(--line); }
+    .search-shell { position: relative; }
+    .search-shell input { padding-left: 40px; }
+    .search-shell .search-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+
+    .chat-list { min-height: 0; overflow: auto; padding: 6px; }
+    .chat-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 9px;
+      background: transparent;
+      border-color: transparent;
+      text-align: left;
+    }
+    .chat-row.active { background: color-mix(in srgb, var(--accent) 13%, transparent); border-color: color-mix(in srgb, var(--accent) 32%, var(--line)); }
+    .chat-main { min-width: 0; display: grid; gap: 3px; }
+    .chat-name { font-weight: 720; }
+    .chat-preview { color: var(--muted); font-size: 13px; }
+    .chat-side { display: grid; justify-items: end; gap: 5px; color: var(--muted); font-size: 12px; }
+    .lock-dot { color: var(--good); font-size: 13px; }
+    .empty-list { padding: 28px 18px; color: var(--muted); text-align: center; font-size: 14px; line-height: 1.45; }
+
+    .chat-area {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+    }
+    .empty-chat {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--muted);
+    }
+    .empty-chat-panel { text-align: center; display: grid; gap: 10px; }
+    .empty-symbol {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--accent);
+      font-size: 30px;
+    }
+    .chat-header {
+      min-height: 72px;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: auto 44px minmax(0, 1fr) max-content;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+    .back-btn { display: none; }
+    .chat-title { min-width: 0; width: 100%; }
+    .chat-title h2 { margin: 0; font-size: 17px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chat-title p { margin: 3px 0 0; color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .security-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--good) 16%, transparent);
+      color: var(--good);
+      border: 1px solid color-mix(in srgb, var(--good) 36%, transparent);
+      font-size: 13px;
+      white-space: nowrap;
+      justify-self: end;
+      width: max-content;
+    }
+
+    .messages {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background-image: var(--wallpaper);
+      background-size: 24px 24px;
+    }
+    .message {
+      max-width: min(68%, 680px);
+      display: grid;
+      gap: 3px;
+    }
+    .message.mine { align-self: flex-end; justify-items: end; }
+    .message.theirs { align-self: flex-start; justify-items: start; }
+    .message-sender { color: var(--accent); font-size: 12px; padding: 0 8px; }
+    .message-bubble {
+      padding: 10px 13px;
+      border-radius: 18px;
+      line-height: 1.42;
+      word-break: break-word;
+      white-space: pre-wrap;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    }
+    body.bubbles-compact .message-bubble { border-radius: 8px; padding: 8px 11px; }
+    .mine .message-bubble { background: var(--accent); color: var(--accent-text); border-bottom-right-radius: 5px; }
+    .theirs .message-bubble { background: var(--bubble-other); color: var(--text); border-bottom-left-radius: 5px; }
+    .message-meta { color: var(--muted); font-size: 11px; padding: 0 8px; }
+    .composer {
+      min-height: 72px;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px;
+      gap: 10px;
+      align-items: center;
+      background: var(--panel);
+      border-top: 1px solid var(--line);
+    }
+    .composer input { min-height: 44px; border-radius: 999px; padding-left: 16px; }
+    .send-btn { width: 44px; height: 44px; border-radius: 50%; font-size: 18px; }
+
+    .modal-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    .modal {
+      width: min(720px, 100%);
+      max-height: min(90vh, 820px);
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .modal.narrow { width: min(480px, 100%); }
+    .modal.wide { width: min(980px, 100%); }
+    .modal-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 18px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+    .modal-head h2 { margin: 0; font-size: 18px; }
+    .modal-body { padding: 18px; }
+    .profile-grid { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; align-items: start; }
+    .avatar-editor { display: grid; justify-items: center; gap: 12px; }
+    .profile-target { cursor: pointer; }
+    .profile-target:hover { filter: brightness(1.08); }
+    .profile-view { display: grid; gap: 18px; }
+    .profile-card {
+      position: relative;
+      display: grid;
+      gap: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      overflow: hidden;
+    }
+    .profile-card > * { position: relative; z-index: 1; }
+    .profile-bg-emoji {
+      position: absolute;
+      right: 18px;
+      top: 8px;
+      z-index: 0;
+      font-size: 120px;
+      line-height: 1;
+      opacity: 0.12;
+      pointer-events: none;
+      user-select: none;
+    }
+    .profile-hero {
+      display: grid;
+      grid-template-columns: 112px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+    }
+    .profile-hero h3 { margin: 0; font-size: 24px; line-height: 1.15; overflow-wrap: anywhere; }
+    .profile-hero p { margin: 5px 0 0; color: var(--muted); }
+    .profile-status-line { color: var(--good); font-size: 13px; margin-top: 8px; }
+    .profile-bio-box {
+      min-height: 54px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--text);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .profile-showcase { display: grid; gap: 10px; }
+    .profile-nft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+    .profile-nft-card {
+      display: grid;
+      gap: 7px;
+      min-width: 0;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--panel) 78%, transparent);
+    }
+    .profile-nft-art {
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--accent) 20%, var(--field));
+      color: var(--accent-text);
+      font-weight: 800;
+    }
+    .profile-nft-art img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-nft-name { font-size: 12px; font-weight: 720; overflow-wrap: anywhere; }
+    .profile-music { display: grid; gap: 8px; }
+    .profile-music audio { width: 100%; }
+    .profile-facts { display: grid; gap: 8px; }
+    .fact-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--text);
+    }
+    .fact-row span:first-child { color: var(--muted); }
+    .fact-row span:last-child { min-width: 0; overflow-wrap: anywhere; }
+    .settings-section { display: grid; gap: 12px; margin-top: 18px; }
+    .settings-section h3 { margin: 0; font-size: 14px; color: var(--muted); font-weight: 650; }
+    .choice-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .choice-btn {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      padding: 8px;
+    }
+    .choice-btn.active { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 24%, transparent); }
+    .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+    .swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid var(--panel);
+      outline: 1px solid var(--line);
+      cursor: pointer;
+    }
+    .swatch.active { outline: 3px solid var(--text); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+    .market-wallet {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      margin-bottom: 14px;
+    }
+    .market-wallet span { color: var(--muted); font-size: 13px; }
+    .market-wallet strong { font-size: 18px; }
+    .market-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+      padding: 4px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+    .market-tabs button {
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .market-tabs button.active { background: var(--accent); color: var(--accent-text); }
+    .nft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+    .nft-card {
+      min-width: 0;
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+    }
+    .nft-art {
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--accent) 18%, var(--field));
+      color: var(--accent-text);
+      font-size: 38px;
+      font-weight: 800;
+    }
+    .nft-art img { width: 100%; height: 100%; object-fit: cover; }
+    .nft-type { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+    .nft-title { font-weight: 760; overflow-wrap: anywhere; }
+    .nft-price { color: var(--muted); font-size: 13px; }
+    .nft-actions { display: grid; gap: 8px; }
+    .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+    .admin-section { display: grid; gap: 12px; padding-top: 2px; }
+    .admin-section h3 { margin: 0; font-size: 15px; }
+
+    .user-results { display: grid; gap: 6px; margin-top: 12px; }
+    .user-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: transparent;
+      text-align: left;
+    }
+    .user-text { min-width: 0; display: grid; gap: 3px; }
+    .user-name { font-weight: 720; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%) translateY(20px);
+      z-index: 30;
+      max-width: min(460px, calc(100vw - 28px));
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+      text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--muted) 38%, transparent); border-radius: 999px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    @media (max-width: 780px) {
+      .layout { grid-template-columns: 1fr; }
+      .chat-area { display: none; }
+      body.chat-open .sidebar { display: none; }
+      body.chat-open .chat-area { display: flex; }
+      .back-btn { display: grid; }
+      .chat-header { grid-template-columns: 40px 42px minmax(0, 1fr) auto; padding: 10px; }
+      .security-pill { width: 34px; padding: 0; justify-content: center; overflow: hidden; }
+      .messages { padding: 12px; }
+      .message { max-width: 86%; }
+      .profile-grid { grid-template-columns: 1fr; }
+      .profile-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+      .fact-row { grid-template-columns: 1fr; gap: 4px; }
+      .choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .admin-grid { grid-template-columns: 1fr; }
+      .nft-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .modal-actions { flex-direction: column-reverse; }
+      .modal-actions button { width: 100%; }
+    }
+  </style>
+</head>
+<body class="theme-midnight wallpaper-lines bubbles-soft">
+  <section id="auth" class="auth-shell">
+    <div class="auth-panel">
+      <div class="auth-brand">
+        <div class="brand-mark">M</div>
+        <div>
+          <h1>Мессенджер</h1>
+          <p>Чаты, профиль и приватные сообщения</p>
+        </div>
+      </div>
+
+      <div class="segmented" role="tablist" aria-label="Вход или регистрация">
+        <button id="login-tab" class="active" type="button">Войти</button>
+        <button id="register-tab" type="button">Регистрация</button>
+      </div>
+
+      <div id="auth-error" class="error-text"></div>
+
+      <form id="login-form" class="form-stack">
+        <label class="field">
+          <span>Юзернейм</span>
+          <input id="login-username" autocomplete="username" required>
+        </label>
+        <label class="field">
+          <span>Пароль</span>
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <button id="login-submit" class="primary-btn" type="submit">Войти</button>
+      </form>
+
+      <form id="register-form" class="form-stack" hidden>
+        <label class="field">
+          <span>Юзернейм</span>
+          <input id="register-username" autocomplete="username" minlength="3" maxlength="24" required>
+        </label>
+        <label class="field">
+          <span>Имя</span>
+          <input id="register-display" maxlength="48" required>
+        </label>
+        <label class="field">
+          <span>Пароль</span>
+          <input id="register-password" type="password" autocomplete="new-password" minlength="6" required>
+        </label>
+        <button id="register-submit" class="primary-btn" type="submit">Создать аккаунт</button>
+      </form>
+
+      <div id="server-links" class="server-links" hidden>
+        <strong>Ссылка для друзей в твоей сети</strong>
+        <div id="server-link-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="app" hidden>
+    <div class="layout">
+      <aside class="sidebar">
+        <header class="sidebar-top">
+          <div class="sidebar-actions">
+            <button id="market-open" class="icon-btn" type="button" title="Маркетплейс" aria-label="Маркетплейс">$</button>
+            <button id="admin-open" class="icon-btn" type="button" title="Админ панель" aria-label="Админ панель" hidden>A</button>
+            <button id="new-chat-open" class="icon-btn" type="button" title="Новый чат" aria-label="Новый чат">+</button>
+            <button id="logout-btn" class="icon-btn" type="button" title="Выйти" aria-label="Выйти">↪</button>
+          </div>
+          <button id="profile-open" class="profile-chip" type="button">
+            <span id="my-avatar" class="avatar"></span>
+            <span class="profile-copy">
+              <span id="my-name" class="profile-name">Мессенджер</span>
+              <span id="my-username" class="profile-username">@user</span>
+            </span>
+          </button>
+        </header>
+
+        <div class="search-wrap">
+          <div class="search-shell">
+            <span class="search-icon">⌕</span>
+            <input id="chat-filter" placeholder="Поиск" autocomplete="off">
+          </div>
+        </div>
+
+        <div id="chat-list" class="chat-list"></div>
+      </aside>
+
+      <main id="chat-area" class="chat-area">
+        <div class="empty-chat">
+          <div class="empty-chat-panel">
+            <div class="empty-symbol">⌁</div>
+            <div>Выбери чат</div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <div id="profile-modal" class="modal-layer" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+      <header class="modal-head">
+        <h2 id="profile-title">Профиль</h2>
+        <button class="icon-btn" type="button" data-close="profile-modal" aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="profile-grid">
+          <div class="avatar-editor">
+            <span id="profile-avatar" class="avatar large"></span>
+            <input id="avatar-input" type="file" accept="image/*" hidden>
+            <button id="avatar-btn" class="secondary-btn" type="button">Фото</button>
+          </div>
+
+          <div class="form-stack">
+            <label class="field">
+              <span>Имя</span>
+              <input id="profile-display" maxlength="48">
+            </label>
+            <label class="field">
+              <span>Статус</span>
+              <input id="profile-status" maxlength="36">
+            </label>
+            <label class="field">
+              <span>Эмодзи профиля</span>
+              <input id="profile-emoji" maxlength="8">
+            </label>
+            <label class="field">
+              <span>О себе</span>
+              <textarea id="profile-bio" maxlength="180"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Оформление профиля</h3>
+          <div class="choice-grid">
+            <label class="field">
+              <span>Цвет фона</span>
+              <input id="profile-bg-color" type="color" value="#20242b">
+            </label>
+            <label class="field">
+              <span>Фоновый эмодзи</span>
+              <input id="profile-bg-emoji" maxlength="12" placeholder="⭐">
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Музыка в профиле</h3>
+          <div class="choice-grid">
+            <label class="field">
+              <span>Название трека</span>
+              <input id="profile-music-title" maxlength="80" placeholder="Мой трек">
+            </label>
+            <label class="field">
+              <span>Ссылка на музыку</span>
+              <input id="profile-music-url" maxlength="500" placeholder="https://...">
+            </label>
+          </div>
+          <label class="field">
+            <span>Или загрузить аудио-файл</span>
+            <input id="profile-music-file" type="file" accept="audio/*">
+          </label>
+        </div>
+
+        <div class="settings-section">
+          <h3>Тема</h3>
+          <div id="theme-options" class="choice-grid">
+            <button class="choice-btn" type="button" data-theme="midnight">Ночь</button>
+            <button class="choice-btn" type="button" data-theme="day">День</button>
+            <button class="choice-btn" type="button" data-theme="forest">Лес</button>
+            <button class="choice-btn" type="button" data-theme="rose">Роза</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Акцент</h3>
+          <div id="accent-options" class="swatches">
+            <button class="swatch" type="button" data-accent="#2f8fed" style="background:#2f8fed"></button>
+            <button class="swatch" type="button" data-accent="#43c478" style="background:#43c478"></button>
+            <button class="swatch" type="button" data-accent="#f05d5e" style="background:#f05d5e"></button>
+            <button class="swatch" type="button" data-accent="#d0922f" style="background:#d0922f"></button>
+            <button class="swatch" type="button" data-accent="#8a6ff0" style="background:#8a6ff0"></button>
+            <button class="swatch" type="button" data-accent="#0f9f9a" style="background:#0f9f9a"></button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Фон чата</h3>
+          <div id="wallpaper-options" class="choice-grid">
+            <button class="choice-btn" type="button" data-wallpaper="clean">Чистый</button>
+            <button class="choice-btn" type="button" data-wallpaper="lines">Линии</button>
+            <button class="choice-btn" type="button" data-wallpaper="grid">Сетка</button>
+            <button class="choice-btn" type="button" data-wallpaper="dots">Точки</button>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>Сообщения</h3>
+          <div id="bubble-options" class="choice-grid">
+            <button class="choice-btn" type="button" data-bubble="soft">Плавные</button>
+            <button class="choice-btn" type="button" data-bubble="compact">Компактные</button>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="secondary-btn" type="button" data-close="profile-modal">Отмена</button>
+          <button id="profile-save" class="primary-btn" type="button">Сохранить</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="newchat-modal" class="modal-layer" hidden>
+    <section class="modal narrow" role="dialog" aria-modal="true" aria-labelledby="newchat-title">
+      <header class="modal-head">
+        <h2 id="newchat-title">Новый чат</h2>
+        <button class="icon-btn" type="button" data-close="newchat-modal" aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="search-shell">
+          <span class="search-icon">⌕</span>
+          <input id="user-search" placeholder="Юзернейм или имя" autocomplete="off">
+        </div>
+        <div id="user-results" class="user-results"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="user-profile-modal" class="modal-layer" hidden>
+    <section class="modal narrow" role="dialog" aria-modal="true" aria-labelledby="user-profile-title">
+      <header class="modal-head">
+        <h2 id="user-profile-title">Профиль</h2>
+        <button class="icon-btn" type="button" data-close="user-profile-modal" aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="profile-view">
+          <div id="view-profile-card" class="profile-card">
+            <div id="view-profile-bg-emoji" class="profile-bg-emoji"></div>
+            <div class="profile-hero">
+              <span id="view-profile-avatar" class="avatar large"></span>
+              <div>
+                <h3 id="view-profile-name"></h3>
+                <p id="view-profile-username"></p>
+                <div id="view-profile-online" class="profile-status-line"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="hint-text">О себе</div>
+              <div id="view-profile-bio" class="profile-bio-box"></div>
+            </div>
+
+            <div id="view-profile-music" class="profile-music" hidden></div>
+
+            <div class="profile-showcase">
+              <div class="hint-text">NFT в профиле</div>
+              <div id="view-profile-nfts" class="profile-nft-grid"></div>
+            </div>
+
+            <div class="profile-facts">
+              <div class="fact-row"><span>Статус</span><span id="view-profile-status"></span></div>
+              <div class="fact-row"><span>Регистрация</span><span id="view-profile-created"></span></div>
+              <div class="fact-row"><span>Общие чаты</span><span id="view-profile-shared"></span></div>
+              <div class="fact-row"><span>Шифрование</span><span id="view-profile-encryption"></span></div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="secondary-btn" type="button" data-close="user-profile-modal">Закрыть</button>
+            <button id="view-profile-message" class="primary-btn" type="button">Написать</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="market-modal" class="modal-layer" hidden>
+    <section class="modal wide" role="dialog" aria-modal="true" aria-labelledby="market-title">
+      <header class="modal-head">
+        <h2 id="market-title">Маркетплейс</h2>
+        <button class="icon-btn" type="button" data-close="market-modal" aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="market-wallet">
+          <span>Баланс</span>
+          <strong id="market-balance">0 доксиков</strong>
+        </div>
+
+        <div class="market-tabs" role="tablist" aria-label="Маркетплейс">
+          <button id="market-tab-shop" class="active" type="button" data-market-tab="shop">В продаже</button>
+          <button id="market-tab-inventory" type="button" data-market-tab="inventory">Мои NFT</button>
+        </div>
+
+        <div id="market-items" class="nft-grid"></div>
+        <div id="inventory-items" class="nft-grid" hidden></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="admin-modal" class="modal-layer" hidden>
+    <section class="modal wide" role="dialog" aria-modal="true" aria-labelledby="admin-title">
+      <header class="modal-head">
+        <h2 id="admin-title">Админ панель</h2>
+        <button class="icon-btn" type="button" data-close="admin-modal" aria-label="Закрыть">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="admin-grid">
+          <form id="admin-gift-form" class="admin-section">
+            <h3>NFT подарок</h3>
+            <label class="field">
+              <span>Название</span>
+              <input id="admin-gift-title" name="title" maxlength="64" placeholder="Например: Золотой подарок">
+            </label>
+            <label class="field">
+              <span>Цена в доксиках</span>
+              <input id="admin-gift-price" name="price" type="number" min="0" step="1" value="0">
+            </label>
+            <label class="field">
+              <span>Фото</span>
+              <input id="admin-gift-image" name="image" type="file" accept="image/*" required>
+            </label>
+            <button id="admin-gift-submit" class="primary-btn" type="submit">Создать подарок</button>
+          </form>
+
+          <form id="admin-asset-form" class="admin-section">
+            <h3>NFT юзернейм или номер</h3>
+            <label class="field">
+              <span>Тип</span>
+              <select id="admin-asset-type">
+                <option value="username">NFT юзернейм</option>
+                <option value="number">NFT номер</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Значение</span>
+              <input id="admin-asset-value" maxlength="64" placeholder="@name или +777">
+            </label>
+            <label class="field">
+              <span>Цена в доксиках</span>
+              <input id="admin-asset-price" type="number" min="0" step="1" value="0">
+            </label>
+            <button id="admin-asset-submit" class="primary-btn" type="submit">Создать NFT</button>
+          </form>
+
+          <form id="admin-doxiki-form" class="admin-section">
+            <h3>Выдать доксики</h3>
+            <label class="field">
+              <span>Юзернейм</span>
+              <input id="admin-doxiki-username" maxlength="24" placeholder="sinagoga322">
+            </label>
+            <label class="field">
+              <span>Количество</span>
+              <input id="admin-doxiki-amount" type="number" min="1" step="1" value="100">
+            </label>
+            <button id="admin-doxiki-submit" class="primary-btn" type="submit">Выдать</button>
+          </form>
+
+          <form id="admin-access-form" class="admin-section">
+            <h3>Выдать админку</h3>
+            <label class="field">
+              <span>Юзернейм</span>
+              <input id="admin-access-username" maxlength="24" placeholder="username">
+            </label>
+            <label class="field">
+              <span>Действие</span>
+              <select id="admin-access-enabled">
+                <option value="1">Выдать админку</option>
+                <option value="0">Забрать админку</option>
+              </select>
+            </label>
+            <button id="admin-access-submit" class="primary-btn" type="submit">Применить</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var token = localStorage.getItem('messenger:token');
+    var me = readJson(localStorage.getItem('messenger:me'));
+    var socket = null;
+    var allChats = [];
+    var currentChat = null;
+    var currentChatId = null;
+    var privateKeyCache = null;
+    var chatKeyCache = {};
+    var searchTimer = null;
+    var viewedProfile = null;
+    var profileDraft = { theme: 'midnight', accent: '#2f8fed', wallpaper: 'lines', bubble_style: 'soft' };
+    var marketState = { tab: 'shop', items: [], inventory: [] };
+
+    function $(id) { return document.getElementById(id); }
+
+    function readJson(value) {
+      try { return value ? JSON.parse(value) : null; } catch { return null; }
+    }
+
+    function setText(id, value) { $(id).textContent = value || ''; }
+
+    function showToast(text) {
+      var toast = $('toast');
+      toast.textContent = text;
+      toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(function () { toast.classList.remove('show'); }, 2400);
+    }
+
+    function setAuthError(text) { $('auth-error').textContent = text || ''; }
+
+    function setButtonBusy(button, busy, text) {
+      if (!button) return;
+      if (busy) {
+        button.dataset.oldText = button.textContent;
+        button.textContent = text || 'Готовлю...';
+        button.disabled = true;
+      } else {
+        button.textContent = button.dataset.oldText || button.textContent;
+        button.disabled = false;
+      }
+    }
+
+    async function api(path, options) {
+      options = options || {};
+      var headers = options.headers || {};
+      var body = options.body;
+
+      if (token) headers.Authorization = 'Bearer ' + token;
+      if (body && !(body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify(body);
+      }
+
+      var res = await fetch(path, { method: options.method || 'GET', headers: headers, body: body });
+      var data = null;
+      try { data = await res.json(); } catch { data = {}; }
+
+      if (res.status === 401) {
+        clearSession();
+        throw new Error(data.error || 'Нужно войти снова');
+      }
+      if (!res.ok) throw new Error(data.error || 'Ошибка запроса');
+      return data;
+    }
+
+    async function loadServerInfo() {
+      try {
+        var res = await fetch('/api/server-info');
+        if (!res.ok) return;
+        var info = await res.json();
+        var links = info.lan_urls || [];
+        var box = $('server-links');
+        var list = $('server-link-list');
+        list.innerHTML = '';
+        if (!links.length) return;
+        links.forEach(function (url) {
+          var link = document.createElement('a');
+          link.href = url;
+          link.textContent = url;
+          link.target = '_blank';
+          list.appendChild(link);
+        });
+        box.hidden = false;
+      } catch {}
+    }
+
+    function showAuthTab(tab) {
+      var login = tab === 'login';
+      $('login-tab').classList.toggle('active', login);
+      $('register-tab').classList.toggle('active', !login);
+      $('login-form').hidden = !login;
+      $('register-form').hidden = login;
+      setAuthError('');
+    }
+
+    async function registerAccount(event) {
+      event.preventDefault();
+      setAuthError('');
+      var button = $('register-submit');
+      setButtonBusy(button, true, 'Создаю...');
+
+      try {
+        var username = $('register-username').value.trim().toLowerCase();
+        var display = $('register-display').value.trim();
+        var password = $('register-password').value;
+        var identity = hasClientCrypto() ? await createIdentityKeys(username) : { publicKeyJson: '' };
+        var data = await api('/api/register', {
+          method: 'POST',
+          body: { username: username, display_name: display, password: password, public_key: identity.publicKeyJson }
+        });
+        saveSession(data);
+      } catch (error) {
+        setAuthError(error.message);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    async function loginAccount(event) {
+      event.preventDefault();
+      setAuthError('');
+      var button = $('login-submit');
+      setButtonBusy(button, true, 'Вхожу...');
+
+      try {
+        var username = $('login-username').value.trim().toLowerCase();
+        var password = $('login-password').value;
+        var data = await api('/api/login', { method: 'POST', body: { username: username, password: password } });
+        saveSession(data);
+      } catch (error) {
+        setAuthError(error.message);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    function saveSession(data) {
+      token = data.token;
+      me = data.user;
+      localStorage.setItem('messenger:token', token);
+      localStorage.setItem('messenger:me', JSON.stringify(me));
+      startApp();
+    }
+
+    function clearSession() {
+      localStorage.removeItem('messenger:token');
+      localStorage.removeItem('messenger:me');
+      token = null;
+      me = null;
+      if (socket) socket.disconnect();
+      location.reload();
+    }
+
+    async function startApp() {
+      $('auth').hidden = true;
+      $('app').hidden = false;
+      connectSocket();
+
+      try {
+        await refreshProfile();
+        await ensureIdentityReady();
+        applyProfileSettings();
+        await loadChats();
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    async function refreshProfile() {
+      me = await api('/api/profile');
+      localStorage.setItem('messenger:me', JSON.stringify(me));
+      updateMyProfileUI();
+    }
+
+    function updateMyProfileUI() {
+      if (!me) return;
+      setText('my-name', (me.profile_emoji ? me.profile_emoji + ' ' : '') + (me.display_name || me.username));
+      setText('my-username', '@' + me.username + ' · ' + formatDoxiki(me.doxiki_balance));
+      renderAvatar($('my-avatar'), me.avatar, me.display_name || me.username);
+      $('admin-open').hidden = !me.is_admin;
+    }
+
+    function applyProfileSettings() {
+      if (!me) return;
+      var theme = me.theme || 'midnight';
+      var wallpaper = me.wallpaper || 'lines';
+      var bubble = me.bubble_style || 'soft';
+      document.documentElement.style.setProperty('--accent', me.accent || '#2f8fed');
+      document.body.classList.remove('theme-midnight', 'theme-day', 'theme-forest', 'theme-rose');
+      document.body.classList.remove('wallpaper-clean', 'wallpaper-lines', 'wallpaper-grid', 'wallpaper-dots');
+      document.body.classList.remove('bubbles-soft', 'bubbles-compact');
+      document.body.classList.add('theme-' + theme, 'wallpaper-' + wallpaper, 'bubbles-' + bubble);
+      updateMyProfileUI();
+    }
+
+    function connectSocket() {
+      if (socket) socket.disconnect();
+      socket = io({ auth: { token: token } });
+      socket.on('message', async function (msg) {
+        if (msg.chatId === currentChatId || msg.chat_id === currentChatId) {
+          await appendMessage(msg);
+        }
+        await loadChats();
+      });
+      socket.on('chats_changed', function () { loadChats(); });
+      socket.on('connect_error', function () { showToast('Не удалось подключить чат'); });
+    }
+
+    async function loadChats() {
+      var chats = await api('/api/chats');
+      allChats = chats;
+      for (var i = 0; i < allChats.length; i++) {
+        await prepareChat(allChats[i]);
+      }
+      renderChats($('chat-filter').value || '');
+    }
+
+    async function prepareChat(chat) {
+      chat.title = chat.is_group ? (chat.name || 'Группа') : (chat.peer_display_name || chat.name || 'Чат');
+      chat.subtitle = chat.peer_username ? '@' + chat.peer_username : '';
+      chat.avatar = chat.peer_avatar || '';
+      chat.preview = 'Нет сообщений';
+
+      if (chat.last_message) {
+        if (Number(chat.last_encrypted)) {
+          var key = await ensureChatKey(chat);
+          chat.preview = key ? await decryptText(chat.last_message, chat.last_iv, key).catch(function () { return 'Зашифрованное сообщение'; }) : 'Зашифрованное сообщение';
+        } else {
+          chat.preview = chat.last_message;
+        }
+      }
+      return chat;
+    }
+
+    function renderChats(filter) {
+      var list = $('chat-list');
+      list.innerHTML = '';
+      var q = String(filter || '').toLowerCase();
+      var chats = allChats.filter(function (chat) {
+        return !q || (chat.title || '').toLowerCase().includes(q) || (chat.subtitle || '').toLowerCase().includes(q);
+      });
+
+      if (!chats.length) {
+        var empty = document.createElement('div');
+        empty.className = 'empty-list';
+        empty.textContent = q ? 'Ничего не найдено' : 'Пока нет чатов';
+        list.appendChild(empty);
+        return;
+      }
+
+      chats.forEach(function (chat) {
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'chat-row';
+        if (chat.id === currentChatId) row.classList.add('active');
+        row.addEventListener('click', function () { openChat(chat); });
+
+        var avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        renderAvatar(avatar, chat.avatar, chat.title);
+
+        var main = document.createElement('span');
+        main.className = 'chat-main';
+        var name = document.createElement('span');
+        name.className = 'chat-name';
+        name.textContent = chat.title;
+        var preview = document.createElement('span');
+        preview.className = 'chat-preview';
+        preview.textContent = chat.preview;
+        main.append(name, preview);
+
+        var side = document.createElement('span');
+        side.className = 'chat-side';
+        var time = document.createElement('span');
+        time.textContent = shortTime(chat.last_time || chat.created_at);
+        var lock = document.createElement('span');
+        lock.className = 'lock-dot';
+        lock.textContent = chat.encrypted_key ? '●' : '○';
+        side.append(time, lock);
+
+        row.append(avatar, main, side);
+        list.appendChild(row);
+      });
+    }
+
+    async function openChat(chat) {
+      currentChat = chat;
+      currentChatId = chat.id;
+      document.body.classList.add('chat-open');
+      socket.emit('join_chat', chat.id);
+      renderChats($('chat-filter').value || '');
+      renderChatShell(chat);
+
+      var box = $('messages');
+      box.innerHTML = '';
+      try {
+        var messages = await api('/api/chats/' + encodeURIComponent(chat.id) + '/messages');
+        for (var i = 0; i < messages.length; i++) await appendMessage(messages[i]);
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    function renderChatShell(chat) {
+      var area = $('chat-area');
+      area.innerHTML = '';
+
+      var header = document.createElement('header');
+      header.className = 'chat-header';
+
+      var back = document.createElement('button');
+      back.className = 'icon-btn back-btn';
+      back.type = 'button';
+      back.textContent = '←';
+      back.setAttribute('aria-label', 'Назад');
+      back.addEventListener('click', function () { document.body.classList.remove('chat-open'); });
+
+      var avatar = document.createElement('span');
+      avatar.className = 'avatar';
+      renderAvatar(avatar, chat.avatar, chat.title);
+
+      var title = document.createElement('div');
+      title.className = 'chat-title';
+      var h2 = document.createElement('h2');
+      h2.textContent = chat.title;
+      var p = document.createElement('p');
+      p.textContent = chat.peer_status || chat.subtitle || 'личный чат';
+      title.append(h2, p);
+
+      if (chat.peer_id) {
+        avatar.classList.add('profile-target');
+        title.classList.add('profile-target');
+        avatar.title = 'Открыть профиль';
+        title.title = 'Открыть профиль';
+        avatar.addEventListener('click', function () { openUserProfile(chat.peer_id); });
+        title.addEventListener('click', function () { openUserProfile(chat.peer_id); });
+      }
+
+      var secure = document.createElement('span');
+      secure.className = 'security-pill';
+      secure.title = chat.encrypted_key ? 'Ключ чата есть' : 'Ключ чата отсутствует';
+      secure.textContent = chat.encrypted_key ? '● E2E' : '○ E2E';
+
+      header.append(back, avatar, title, secure);
+
+      var messages = document.createElement('div');
+      messages.id = 'messages';
+      messages.className = 'messages';
+
+      var form = document.createElement('form');
+      form.id = 'message-form';
+      form.className = 'composer';
+      var input = document.createElement('input');
+      input.id = 'message-input';
+      input.placeholder = 'Сообщение';
+      input.autocomplete = 'off';
+      var send = document.createElement('button');
+      send.className = 'primary-btn send-btn';
+      send.type = 'submit';
+      send.textContent = '➤';
+      send.setAttribute('aria-label', 'Отправить');
+      form.append(input, send);
+      form.addEventListener('submit', sendMessage);
+
+      area.append(header, messages, form);
+      input.focus();
+    }
+
+    async function appendMessage(msg) {
+      var box = $('messages');
+      if (!box || !currentChat) return;
+      var plain = await plainMessageText(currentChat, msg);
+      var mine = msg.sender_id === me.id;
+
+      var wrap = document.createElement('div');
+      wrap.className = 'message ' + (mine ? 'mine' : 'theirs');
+
+      if (!mine) {
+        var sender = document.createElement('div');
+        sender.className = 'message-sender';
+        sender.textContent = msg.display_name || msg.username || currentChat.title;
+        wrap.appendChild(sender);
+      }
+
+      var bubble = document.createElement('div');
+      bubble.className = 'message-bubble';
+      bubble.textContent = plain;
+      var meta = document.createElement('div');
+      meta.className = 'message-meta';
+      meta.textContent = shortTime(msg.created_at) + (Number(msg.encrypted) ? '  ●' : '  ○');
+
+      wrap.append(bubble, meta);
+      box.appendChild(wrap);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    async function plainMessageText(chat, msg) {
+      if (!Number(msg.encrypted)) return msg.content || '';
+      var key = await ensureChatKey(chat);
+      if (!key) return 'Не удалось расшифровать на этом устройстве';
+      try {
+        return await decryptText(msg.content, msg.iv, key);
+      } catch {
+        return 'Не удалось расшифровать';
+      }
+    }
+
+    async function sendMessage(event) {
+      event.preventDefault();
+      var input = $('message-input');
+      var text = input.value.trim();
+      if (!text || !currentChat) return;
+
+      try {
+        var key = hasClientCrypto() ? await ensureChatKey(currentChat) : null;
+        var encrypted = key ? await encryptText(text, key) : null;
+        socket.emit('message', {
+          chatId: currentChat.id,
+          content: encrypted ? encrypted.content : text,
+          iv: encrypted ? encrypted.iv : null,
+          encrypted: encrypted ? 1 : 0
+        }, function (ack) {
+          if (ack && !ack.ok) showToast(ack.error || 'Сообщение не отправлено');
+        });
+        input.value = '';
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    function formatDoxiki(value) {
+      return Number(value || 0).toLocaleString('ru-RU') + ' доксиков';
+    }
+
+    function nftTypeLabel(type) {
+      if (type === 'gift') return 'NFT подарок';
+      if (type === 'username') return 'NFT юзернейм';
+      if (type === 'number') return 'NFT номер';
+      return 'NFT';
+    }
+
+    function nftSymbol(type) {
+      if (type === 'username') return '@';
+      if (type === 'number') return '#';
+      return 'NFT';
+    }
+
+    async function openMarketplace() {
+      $('market-modal').hidden = false;
+      await loadMarketplace();
+    }
+
+    async function loadMarketplace() {
+      try {
+        var data = await api('/api/marketplace');
+        marketState.items = data.items || [];
+        marketState.inventory = data.inventory || [];
+        me.doxiki_balance = data.balance || 0;
+        me.is_admin = Boolean(data.is_admin);
+        me.is_owner_admin = Boolean(data.is_owner_admin);
+        localStorage.setItem('messenger:me', JSON.stringify(me));
+        updateMyProfileUI();
+        renderMarketplace();
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    function renderMarketplace() {
+      setText('market-balance', formatDoxiki(me && me.doxiki_balance));
+      $('market-tab-shop').classList.toggle('active', marketState.tab === 'shop');
+      $('market-tab-inventory').classList.toggle('active', marketState.tab === 'inventory');
+      $('market-items').hidden = marketState.tab !== 'shop';
+      $('inventory-items').hidden = marketState.tab !== 'inventory';
+      renderNftList('market-items', marketState.items, false);
+      renderNftList('inventory-items', marketState.inventory, true);
+    }
+
+    function renderNftList(id, items, owned) {
+      var box = $(id);
+      box.innerHTML = '';
+      if (!items.length) {
+        var empty = document.createElement('div');
+        empty.className = 'empty-list';
+        empty.style.gridColumn = '1 / -1';
+        empty.textContent = owned ? 'В коллекции пока пусто' : 'В продаже пока нет NFT';
+        box.appendChild(empty);
+        return;
+      }
+
+      items.forEach(function (item) {
+        var card = document.createElement('article');
+        card.className = 'nft-card';
+
+        var art = document.createElement('div');
+        art.className = 'nft-art';
+        if (item.image) {
+          var img = document.createElement('img');
+          img.src = item.image;
+          img.alt = '';
+          art.appendChild(img);
+        } else {
+          art.textContent = nftSymbol(item.type);
+        }
+
+        var type = document.createElement('div');
+        type.className = 'nft-type';
+        type.textContent = nftTypeLabel(item.type);
+        var title = document.createElement('div');
+        title.className = 'nft-title';
+        title.textContent = item.title;
+        var price = document.createElement('div');
+        price.className = 'nft-price';
+        price.textContent = owned ? 'В твоей коллекции' : formatDoxiki(item.price);
+
+        card.append(art, type, title, price);
+
+        if (!owned) {
+          var buy = document.createElement('button');
+          buy.className = 'primary-btn';
+          buy.type = 'button';
+          buy.textContent = 'Купить';
+          buy.disabled = Number(me && me.doxiki_balance || 0) < Number(item.price || 0);
+          buy.addEventListener('click', function () { buyNft(item.id); });
+          card.appendChild(buy);
+        } else {
+          var actions = document.createElement('div');
+          actions.className = 'nft-actions';
+          var toggle = document.createElement('button');
+          toggle.className = item.profile_visible ? 'secondary-btn' : 'primary-btn';
+          toggle.type = 'button';
+          toggle.textContent = item.profile_visible ? 'Убрать из профиля' : 'В профиль';
+          toggle.addEventListener('click', function () { toggleProfileNft(item); });
+          actions.appendChild(toggle);
+          card.appendChild(actions);
+        }
+
+        box.appendChild(card);
+      });
+    }
+
+    async function toggleProfileNft(item) {
+      try {
+        await api('/api/profile/nfts/' + encodeURIComponent(item.id), {
+          method: 'PUT',
+          body: { visible: !item.profile_visible }
+        });
+        showToast(item.profile_visible ? 'NFT убран из профиля' : 'NFT добавлен в профиль');
+        await loadMarketplace();
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    async function buyNft(itemId) {
+      try {
+        var data = await api('/api/marketplace/' + encodeURIComponent(itemId) + '/buy', { method: 'POST' });
+        me.doxiki_balance = data.balance || 0;
+        localStorage.setItem('messenger:me', JSON.stringify(me));
+        updateMyProfileUI();
+        showToast('NFT куплен');
+        await loadMarketplace();
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    function openAdmin() {
+      if (!me || !me.is_admin) {
+        showToast('Админка доступна только владельцу');
+        return;
+      }
+      $('admin-access-form').hidden = !me.is_owner_admin;
+      $('admin-modal').hidden = false;
+    }
+
+    async function createAdminGift(event) {
+      event.preventDefault();
+      var button = $('admin-gift-submit');
+      setButtonBusy(button, true, 'Создаю...');
+      try {
+        var form = new FormData($('admin-gift-form'));
+        await api('/api/admin/nft-gifts', { method: 'POST', body: form });
+        $('admin-gift-form').reset();
+        $('admin-gift-price').value = '0';
+        showToast('NFT подарок создан');
+        if (!$('market-modal').hidden) await loadMarketplace();
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    async function createAdminAsset(event) {
+      event.preventDefault();
+      var button = $('admin-asset-submit');
+      setButtonBusy(button, true, 'Создаю...');
+      try {
+        await api('/api/admin/nft-assets', {
+          method: 'POST',
+          body: {
+            type: $('admin-asset-type').value,
+            value: $('admin-asset-value').value.trim(),
+            price: Number($('admin-asset-price').value)
+          }
+        });
+        $('admin-asset-value').value = '';
+        $('admin-asset-price').value = '0';
+        showToast('NFT создан');
+        if (!$('market-modal').hidden) await loadMarketplace();
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    async function grantDoxiki(event) {
+      event.preventDefault();
+      var button = $('admin-doxiki-submit');
+      setButtonBusy(button, true, 'Выдаю...');
+      try {
+        var data = await api('/api/admin/doxiki', {
+          method: 'POST',
+          body: {
+            username: $('admin-doxiki-username').value.trim(),
+            amount: Number($('admin-doxiki-amount').value)
+          }
+        });
+        if (data.user && me && data.user.username === me.username) {
+          me.doxiki_balance = data.user.doxiki_balance;
+          localStorage.setItem('messenger:me', JSON.stringify(me));
+          updateMyProfileUI();
+        }
+        showToast('Доксики выданы');
+        if (!$('market-modal').hidden) await loadMarketplace();
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    async function updateAdminAccess(event) {
+      event.preventDefault();
+      var button = $('admin-access-submit');
+      setButtonBusy(button, true, 'Применяю...');
+      try {
+        var data = await api('/api/admin/access', {
+          method: 'POST',
+          body: {
+            username: $('admin-access-username').value.trim(),
+            enabled: $('admin-access-enabled').value === '1'
+          }
+        });
+        showToast(data.user && data.user.is_admin ? 'Админка выдана' : 'Админка забрана');
+        $('admin-access-username').value = '';
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    function openProfile() {
+      profileDraft = {
+        theme: me.theme || 'midnight',
+        accent: me.accent || '#2f8fed',
+        wallpaper: me.wallpaper || 'lines',
+        bubble_style: me.bubble_style || 'soft'
+      };
+      $('profile-display').value = me.display_name || '';
+      $('profile-status').value = me.status || '';
+      $('profile-emoji').value = me.profile_emoji || '';
+      $('profile-bio').value = me.bio || '';
+      $('profile-bg-color').value = me.profile_bg_color || '#20242b';
+      $('profile-bg-emoji').value = me.profile_bg_emoji || '';
+      $('profile-music-title').value = me.profile_music_title || '';
+      $('profile-music-url').value = me.profile_music_url || '';
+      $('profile-music-file').value = '';
+      renderAvatar($('profile-avatar'), me.avatar, me.display_name || me.username);
+      updateChoiceUI();
+      $('profile-modal').hidden = false;
+    }
+
+    async function saveProfile() {
+      var button = $('profile-save');
+      setButtonBusy(button, true, 'Сохраняю...');
+      try {
+        var data = await api('/api/profile', {
+          method: 'PUT',
+          body: {
+            display_name: $('profile-display').value.trim(),
+            status: $('profile-status').value.trim(),
+            profile_emoji: $('profile-emoji').value.trim(),
+            bio: $('profile-bio').value.trim(),
+            theme: profileDraft.theme,
+            accent: profileDraft.accent,
+            wallpaper: profileDraft.wallpaper,
+            bubble_style: profileDraft.bubble_style,
+            profile_bg_color: $('profile-bg-color').value,
+            profile_bg_emoji: $('profile-bg-emoji').value.trim(),
+            profile_music_title: $('profile-music-title').value.trim(),
+            profile_music_url: $('profile-music-url').value.trim()
+          }
+        });
+        me = data.user;
+        if ($('profile-music-file').files[0]) {
+          data = await uploadProfileMusic(false);
+          me = data.user;
+        }
+        localStorage.setItem('messenger:me', JSON.stringify(me));
+        applyProfileSettings();
+        closeModal('profile-modal');
+        showToast('Профиль сохранен');
+      } catch (error) {
+        showToast(error.message);
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    async function uploadProfileMusic(showMessage) {
+      var file = $('profile-music-file').files[0];
+      if (!file) return { user: me };
+      var form = new FormData();
+      form.append('music', file);
+      var data = await api('/api/profile/music', { method: 'POST', body: form });
+      if (showMessage !== false) showToast('Музыка обновлена');
+      return data;
+    }
+
+    async function uploadAvatar() {
+      var file = $('avatar-input').files[0];
+      if (!file) return;
+      var form = new FormData();
+      form.append('avatar', file);
+      try {
+        var data = await api('/api/avatar', { method: 'POST', body: form });
+        me = data.user;
+        localStorage.setItem('messenger:me', JSON.stringify(me));
+        renderAvatar($('profile-avatar'), me.avatar, me.display_name || me.username);
+        applyProfileSettings();
+        showToast('Фото обновлено');
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    async function openUserProfile(userId, fallbackUser) {
+      if (!userId) return;
+      try {
+        var data = await api('/api/users/' + encodeURIComponent(userId) + '/profile');
+        viewedProfile = data;
+        renderViewedProfile(data, fallbackUser);
+        $('user-profile-modal').hidden = false;
+      } catch (error) {
+        if (!fallbackUser) {
+          showToast(error.message);
+          return;
+        }
+        viewedProfile = { user: fallbackUser, profile_nfts: [], is_self: fallbackUser.id === me.id, is_online: false, shared_chats: 0, direct_chat_id: null, encryption_ready: Boolean(fallbackUser.public_key) };
+        renderViewedProfile(viewedProfile, fallbackUser);
+        $('user-profile-modal').hidden = false;
+      }
+    }
+
+    function renderViewedProfile(data, fallbackUser) {
+      var user = data.user || fallbackUser || {};
+      var name = (user.profile_emoji ? user.profile_emoji + ' ' : '') + (user.display_name || user.username || 'Профиль');
+      $('view-profile-card').style.background = user.profile_bg_color || '#20242b';
+      setText('view-profile-bg-emoji', user.profile_bg_emoji || '');
+      renderAvatar($('view-profile-avatar'), user.avatar, user.display_name || user.username);
+      setText('view-profile-name', name);
+      setText('view-profile-username', user.username ? '@' + user.username : '');
+      setText('view-profile-online', data.is_online ? 'онлайн' : 'не в сети');
+      setText('view-profile-bio', user.bio || 'Пока пусто');
+      renderProfileMusic(user);
+      renderProfileNfts(data.profile_nfts || []);
+      setText('view-profile-status', user.status || 'не указан');
+      setText('view-profile-created', user.created_at ? fullDate(user.created_at) : 'неизвестно');
+      setText('view-profile-shared', String(data.shared_chats || 0));
+      setText('view-profile-encryption', data.encryption_ready ? 'E2E готово' : 'серверное шифрование хранения');
+      $('view-profile-message').hidden = Boolean(data.is_self);
+    }
+
+    function renderProfileMusic(user) {
+      var box = $('view-profile-music');
+      box.innerHTML = '';
+      if (!user.profile_music_url) {
+        box.hidden = true;
+        return;
+      }
+      box.hidden = false;
+
+      var label = document.createElement('div');
+      label.className = 'hint-text';
+      label.textContent = user.profile_music_title || 'Музыка профиля';
+      var audio = document.createElement('audio');
+      audio.controls = true;
+      audio.src = user.profile_music_url;
+      box.append(label, audio);
+    }
+
+    function renderProfileNfts(items) {
+      var box = $('view-profile-nfts');
+      box.innerHTML = '';
+      if (!items.length) {
+        var empty = document.createElement('div');
+        empty.className = 'hint-text';
+        empty.textContent = 'Пока пусто';
+        box.appendChild(empty);
+        return;
+      }
+
+      items.forEach(function (item) {
+        var card = document.createElement('div');
+        card.className = 'profile-nft-card';
+
+        var art = document.createElement('div');
+        art.className = 'profile-nft-art';
+        if (item.image) {
+          var img = document.createElement('img');
+          img.src = item.image;
+          img.alt = '';
+          art.appendChild(img);
+        } else {
+          art.textContent = nftSymbol(item.type);
+        }
+
+        var title = document.createElement('div');
+        title.className = 'profile-nft-name';
+        title.textContent = item.title;
+        card.append(art, title);
+        box.appendChild(card);
+      });
+    }
+
+    async function messageViewedProfile() {
+      if (!viewedProfile || !viewedProfile.user) return;
+      closeModal('user-profile-modal');
+      closeModal('newchat-modal');
+      await startChat(viewedProfile.user);
+    }
+
+    function openNewChat() {
+      $('user-search').value = '';
+      $('user-results').innerHTML = '<div class="empty-list">Введите имя или юзернейм</div>';
+      $('newchat-modal').hidden = false;
+      setTimeout(function () { $('user-search').focus(); }, 40);
+    }
+
+    function searchUsers() {
+      clearTimeout(searchTimer);
+      var q = $('user-search').value.trim();
+      if (!q) {
+        $('user-results').innerHTML = '<div class="empty-list">Введите имя или юзернейм</div>';
+        return;
+      }
+      searchTimer = setTimeout(async function () {
+        try {
+          var users = await api('/api/users/search?q=' + encodeURIComponent(q));
+          renderUserResults(users);
+        } catch (error) {
+          showToast(error.message);
+        }
+      }, 220);
+    }
+
+    function renderUserResults(users) {
+      var box = $('user-results');
+      box.innerHTML = '';
+      if (!users.length) {
+        box.innerHTML = '<div class="empty-list">Никого не найдено</div>';
+        return;
+      }
+
+      users.forEach(function (user) {
+        var row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'user-row';
+        row.addEventListener('click', function () { openUserProfile(user.id, user); });
+
+        var avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        renderAvatar(avatar, user.avatar, user.display_name || user.username);
+
+        var text = document.createElement('span');
+        text.className = 'user-text';
+        var name = document.createElement('span');
+        name.className = 'user-name';
+        name.textContent = user.display_name || user.username;
+        var meta = document.createElement('span');
+        meta.className = 'user-meta';
+        meta.textContent = '@' + user.username + (user.status ? ' · ' + user.status : '');
+        text.append(name, meta);
+
+        var lock = document.createElement('span');
+        lock.className = 'lock-dot';
+        lock.textContent = user.public_key ? '●' : '○';
+
+        row.append(avatar, text, lock);
+        box.appendChild(row);
+      });
+    }
+
+    async function startChat(user) {
+      try {
+        var existing = allChats.find(function (chat) { return chat.peer_id === user.id; });
+        if (existing) {
+          closeModal('newchat-modal');
+          await openChat(existing);
+          return;
+        }
+
+        var chatKey = null;
+        var keys = [];
+
+        if (hasClientCrypto()) {
+          await ensureIdentityReady();
+          if (user.public_key && me.public_key) {
+            chatKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+            var rawKey = await crypto.subtle.exportKey('raw', chatKey);
+            keys = [
+              { user_id: me.id, encrypted_key: await encryptKeyForUser(rawKey, me.public_key) },
+              { user_id: user.id, encrypted_key: await encryptKeyForUser(rawKey, user.public_key) }
+            ];
+          }
+        }
+
+        var data = await api('/api/chats', { method: 'POST', body: { user_id: user.id, keys: keys } });
+        if (chatKey && !data.existing) chatKeyCache[data.id] = chatKey;
+        closeModal('newchat-modal');
+        await loadChats();
+        var chat = allChats.find(function (item) { return item.id === data.id; }) || data.chat;
+        await openChat(chat);
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    function closeModal(id) { $(id).hidden = true; }
+
+    function renderAvatar(node, src, name) {
+      node.innerHTML = '';
+      if (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        node.appendChild(img);
+      } else {
+        node.textContent = initials(name);
+      }
+    }
+
+    function initials(name) {
+      var parts = String(name || '?').trim().split(/\s+/).filter(Boolean);
+      var letters = parts.slice(0, 2).map(function (part) { return Array.from(part)[0] || ''; }).join('');
+      return (letters || '?').toUpperCase();
+    }
+
+    function shortTime(value) {
+      if (!value) return '';
+      var date = new Date(Number(value) * 1000);
+      var now = new Date();
+      if (date.toDateString() === now.toDateString()) {
+        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      }
+      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    }
+
+    function fullDate(value) {
+      return new Date(Number(value) * 1000).toLocaleDateString('ru-RU', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+
+    function updateChoiceUI() {
+      document.querySelectorAll('[data-theme]').forEach(function (btn) { btn.classList.toggle('active', btn.dataset.theme === profileDraft.theme); });
+      document.querySelectorAll('[data-accent]').forEach(function (btn) { btn.classList.toggle('active', btn.dataset.accent.toLowerCase() === profileDraft.accent.toLowerCase()); });
+      document.querySelectorAll('[data-wallpaper]').forEach(function (btn) { btn.classList.toggle('active', btn.dataset.wallpaper === profileDraft.wallpaper); });
+      document.querySelectorAll('[data-bubble]').forEach(function (btn) { btn.classList.toggle('active', btn.dataset.bubble === profileDraft.bubble_style); });
+    }
+
+    function hasClientCrypto() {
+      return Boolean(window.crypto && window.crypto.subtle);
+    }
+
+    function ensureCryptoAvailable() {
+      if (!hasClientCrypto()) throw new Error('В этом браузере нет Web Crypto');
+    }
+
+    function identityStorageKey(username) { return 'messenger:private-key:' + String(username || '').toLowerCase(); }
+
+    async function createIdentityKeys(username) {
+      var keyPair = await crypto.subtle.generateKey({
+        name: 'RSA-OAEP',
+        modulusLength: 2048,
+        publicExponent: new Uint8Array([1, 0, 1]),
+        hash: 'SHA-256'
+      }, true, ['encrypt', 'decrypt']);
+
+      var publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
+      var privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
+      localStorage.setItem(identityStorageKey(username), JSON.stringify(privateJwk));
+      privateKeyCache = keyPair.privateKey;
+      return { publicKeyJson: JSON.stringify(publicJwk), privateKey: keyPair.privateKey };
+    }
+
+    async function ensureIdentityReady() {
+      if (!hasClientCrypto()) return;
+      var privateJwk = readJson(localStorage.getItem(identityStorageKey(me.username)));
+      if (privateJwk && me.public_key) return;
+
+      if (!privateJwk || !me.public_key) {
+        var identity = await createIdentityKeys(me.username);
+        var data = await api('/api/profile/key', { method: 'PUT', body: { public_key: identity.publicKeyJson } });
+        me = data.user;
+        localStorage.setItem('messenger:me', JSON.stringify(me));
+      }
+    }
+
+    async function getPrivateKey() {
+      if (privateKeyCache) return privateKeyCache;
+      var jwk = readJson(localStorage.getItem(identityStorageKey(me.username)));
+      if (!jwk) return null;
+      privateKeyCache = await crypto.subtle.importKey('jwk', jwk, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt']);
+      return privateKeyCache;
+    }
+
+    async function importPublicKey(publicKeyJson) {
+      return crypto.subtle.importKey('jwk', JSON.parse(publicKeyJson), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+    }
+
+    async function encryptKeyForUser(rawKey, publicKeyJson) {
+      var publicKey = await importPublicKey(publicKeyJson);
+      var encrypted = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, publicKey, rawKey);
+      return bufferToBase64(encrypted);
+    }
+
+    async function ensureChatKey(chat) {
+      if (!chat) return null;
+      if (chatKeyCache[chat.id]) return chatKeyCache[chat.id];
+      if (!chat.encrypted_key) return null;
+      var privateKey = await getPrivateKey();
+      if (!privateKey) return null;
+      try {
+        var raw = await crypto.subtle.decrypt({ name: 'RSA-OAEP' }, privateKey, base64ToBuffer(chat.encrypted_key));
+        var aes = await crypto.subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+        chatKeyCache[chat.id] = aes;
+        return aes;
+      } catch {
+        return null;
+      }
+    }
+
+    async function encryptText(text, key) {
+      var iv = crypto.getRandomValues(new Uint8Array(12));
+      var encoded = new TextEncoder().encode(text);
+      var cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: iv }, key, encoded);
+      return { content: bufferToBase64(cipher), iv: bufferToBase64(iv) };
+    }
+
+    async function decryptText(content, iv, key) {
+      var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(base64ToBuffer(iv)) }, key, base64ToBuffer(content));
+      return new TextDecoder().decode(plain);
+    }
+
+    function bufferToBase64(buffer) {
+      var bytes = new Uint8Array(buffer);
+      var binary = '';
+      for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+
+    function base64ToBuffer(base64) {
+      var binary = atob(base64 || '');
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return bytes.buffer;
+    }
+
+    $('login-tab').addEventListener('click', function () { showAuthTab('login'); });
+    $('register-tab').addEventListener('click', function () { showAuthTab('register'); });
+    $('login-form').addEventListener('submit', loginAccount);
+    $('register-form').addEventListener('submit', registerAccount);
+    $('profile-open').addEventListener('click', openProfile);
+    $('market-open').addEventListener('click', openMarketplace);
+    $('admin-open').addEventListener('click', openAdmin);
+    $('new-chat-open').addEventListener('click', openNewChat);
+    $('logout-btn').addEventListener('click', clearSession);
+    $('chat-filter').addEventListener('input', function (event) { renderChats(event.target.value); });
+    $('user-search').addEventListener('input', searchUsers);
+    $('profile-save').addEventListener('click', saveProfile);
+    $('avatar-btn').addEventListener('click', function () { $('avatar-input').click(); });
+    $('avatar-input').addEventListener('change', uploadAvatar);
+    $('view-profile-message').addEventListener('click', messageViewedProfile);
+    $('admin-gift-form').addEventListener('submit', createAdminGift);
+    $('admin-asset-form').addEventListener('submit', createAdminAsset);
+    $('admin-doxiki-form').addEventListener('submit', grantDoxiki);
+    $('admin-access-form').addEventListener('submit', updateAdminAccess);
+
+    document.addEventListener('click', function (event) {
+      var closeId = event.target.getAttribute('data-close');
+      if (closeId) closeModal(closeId);
+      if (event.target.dataset.marketTab) {
+        marketState.tab = event.target.dataset.marketTab;
+        renderMarketplace();
+      }
+      if (event.target.dataset.theme) profileDraft.theme = event.target.dataset.theme;
+      if (event.target.dataset.accent) profileDraft.accent = event.target.dataset.accent;
+      if (event.target.dataset.wallpaper) profileDraft.wallpaper = event.target.dataset.wallpaper;
+      if (event.target.dataset.bubble) profileDraft.bubble_style = event.target.dataset.bubble;
+      if (event.target.dataset.theme || event.target.dataset.accent || event.target.dataset.wallpaper || event.target.dataset.bubble) updateChoiceUI();
+    });
+
+    document.querySelectorAll('.modal-layer').forEach(function (layer) {
+      layer.addEventListener('click', function (event) {
+        if (event.target === layer) layer.hidden = true;
+      });
+    });
+
+    loadServerInfo();
+    if (token && me) startApp();
+  </script>
+</body>
+</html>
