@@ -1,6 +1,5 @@
 const { Client } = require('pg');
 
-// Берем ссылку на базу из настроек Render
 const connectionString = process.env.DATABASE_URL; 
 
 if (!connectionString) {
@@ -9,14 +8,18 @@ if (!connectionString) {
 
 const client = new Client({
   connectionString: connectionString,
+  // Принудительно заставляем использовать IPv4 (семейство адресов 4)
+  connection: {
+    family: 4
+  },
   ssl: { rejectUnauthorized: false }
 });
 
 client.connect()
-  .then(() => console.log('🚀 Успешно подключено к базе данных Supabase Postgres!'))
+  .then(() => console.log('🚀 Успешно подключено к базе данных Supabase Postgres через IPv4!'))
   .catch(err => console.error('❌ Ошибка подключения к Supabase Postgres:', err));
 
-// Обертка-имитатор под better-sqlite3, чтобы не переписывать server.js
+// Обертка-имитатор под better-sqlite3
 const db = {
   prepare: (sql) => {
     let formattedSql = sql;
@@ -26,24 +29,26 @@ const db = {
       paramIndex++;
     }
 
-    // Подмена специфичных функций
     formattedSql = formattedSql.replace(/unixepoch\(\)/g, 'extract(epoch from now())::int');
 
     return {
       run: (...params) => {
         return client.query(formattedSql, params)
           .then(res => ({ changes: res.rowCount }))
-          .catch(err => { console.error('Ошибка выполнения SQL:', err); throw err; });
+          .catch(err => { console.error('Ошибка выполнения SQL .run():', err); throw err; });
       },
       get: (...params) => {
         return client.query(formattedSql, params)
           .then(res => res.rows[0] || null)
-          .catch(err => { console.error('Ошибка выполнения SQL:', err); throw err; });
+          .catch(err => { console.error('Ошибка выполнения SQL .get():', err); throw err; });
       },
       all: (...params) => {
         return client.query(formattedSql, params)
-          .then(res => res.rows)
-          .catch(err => { console.error('Ошибка выполнения SQL:', err); throw err; });
+          .then(res => res.rows || [])
+          .catch(err => { 
+            console.error('Ошибка выполнения SQL .all():', err); 
+            return []; 
+          });
       }
     };
   },
@@ -60,7 +65,6 @@ const db = {
       }
     };
   },
-  // Заглушка для прагм, Postgres они не нужны
   pragma: () => {},
   exec: (sql) => {
     return client.query(sql)
