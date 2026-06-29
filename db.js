@@ -8,15 +8,12 @@ if (!connectionString) {
 
 const client = new Client({
   connectionString: connectionString,
-  // Принудительно заставляем использовать IPv4 (семейство адресов 4)
-  connection: {
-    family: 4
-  },
+  // Включаем SSL, который требует Supabase
   ssl: { rejectUnauthorized: false }
 });
 
 client.connect()
-  .then(() => console.log('🚀 Успешно подключено к базе данных Supabase Postgres через IPv4!'))
+  .then(() => console.log('🚀 Успешно подключено к базе данных Supabase Postgres!'))
   .catch(err => console.error('❌ Ошибка подключения к Supabase Postgres:', err));
 
 // Обертка-имитатор под better-sqlite3
@@ -32,23 +29,32 @@ const db = {
     formattedSql = formattedSql.replace(/unixepoch\(\)/g, 'extract(epoch from now())::int');
 
     return {
-      run: (...params) => {
-        return client.query(formattedSql, params)
-          .then(res => ({ changes: res.rowCount }))
-          .catch(err => { console.error('Ошибка выполнения SQL .run():', err); throw err; });
+      run: async (...params) => {
+        try {
+          const res = await client.query(formattedSql, params);
+          return { changes: res.rowCount };
+        } catch (err) {
+          console.error('Ошибка выполнения SQL .run():', err);
+          throw err;
+        }
       },
-      get: (...params) => {
-        return client.query(formattedSql, params)
-          .then(res => res.rows[0] || null)
-          .catch(err => { console.error('Ошибка выполнения SQL .get():', err); throw err; });
+      get: async (...params) => {
+        try {
+          const res = await client.query(formattedSql, params);
+          return res.rows[0] || null;
+        } catch (err) {
+          console.error('Ошибка выполнения SQL .get():', err);
+          throw err;
+        }
       },
-      all: (...params) => {
-        return client.query(formattedSql, params)
-          .then(res => res.rows || [])
-          .catch(err => { 
-            console.error('Ошибка выполнения SQL .all():', err); 
-            return []; 
-          });
+      all: async (...params) => {
+        try {
+          const res = await client.query(formattedSql, params);
+          return res.rows || [];
+        } catch (err) {
+          console.error('Ошибка выполнения SQL .all():', err);
+          return [];
+        }
       }
     };
   },
