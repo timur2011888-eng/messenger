@@ -109,6 +109,11 @@ ensureColumn('users', 'profile_music_title', "profile_music_title TEXT DEFAULT '
 ensureColumn('users', 'profile_music_url', "profile_music_url TEXT DEFAULT ''");
 ensureColumn('messages', 'encrypted', 'encrypted INTEGER DEFAULT 0');
 ensureColumn('nft_items', 'profile_visible', 'profile_visible INTEGER DEFAULT 0');
+ensureColumn('users', 'profile_music_cover', "profile_music_cover TEXT DEFAULT ''");
+ensureColumn('users', 'profile_music_artist', "profile_music_artist TEXT DEFAULT ''");
+ensureColumn('nft_items', 'total_supply', 'total_supply INTEGER DEFAULT 1');
+ensureColumn('nft_items', 'sold_count', 'sold_count INTEGER DEFAULT 0');
+ensureColumn('nft_items', 'template_id', "template_id TEXT DEFAULT ''");
 
 db.exec([
   'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at);',

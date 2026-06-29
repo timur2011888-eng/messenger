@@ -104,6 +104,8 @@ function publicUser(user) {
     profile_bg_emoji: user.profile_bg_emoji || '',
     profile_music_title: user.profile_music_title || '',
     profile_music_url: user.profile_music_url || '',
+    profile_music_cover: user.profile_music_cover || '',
+    profile_music_artist: user.profile_music_artist || '',
     is_admin: isAdminUser(user),
     is_owner_admin: isOwnerUser(user),
     created_at: user.created_at
@@ -184,7 +186,8 @@ function getUserById(id) {
   return db.prepare([
     'SELECT id, username, display_name, bio, avatar, status, profile_emoji,',
     'theme, accent, wallpaper, bubble_style, public_key, doxiki_balance, is_admin,',
-    'profile_bg_color, profile_bg_emoji, profile_music_title, profile_music_url, created_at',
+    'profile_bg_color, profile_bg_emoji, profile_music_title, profile_music_url,',
+    'profile_music_cover, profile_music_artist, created_at',
     'FROM users WHERE id = ?'
   ].join(' ')).get(id);
 }
@@ -272,6 +275,9 @@ function nftItem(row) {
     price: Number(row.price || 0),
     owner_id: row.owner_id || null,
     profile_visible: Boolean(row.profile_visible),
+    total_supply: Number(row.total_supply || 1),
+    sold_count: Number(row.sold_count || 0),
+    template_id: row.template_id || '',
     created_at: row.created_at,
     purchased_at: row.purchased_at || null
   };
@@ -279,10 +285,10 @@ function nftItem(row) {
 
 function profileNfts(userId) {
   return db.prepare([
-    'SELECT id, type, title, image, price, owner_id, profile_visible, created_at, purchased_at',
+    'SELECT id, type, title, image, price, owner_id, profile_visible, total_supply, sold_count, template_id, created_at, purchased_at',
     'FROM nft_items',
     'WHERE owner_id = ? AND profile_visible = 1',
-    "ORDER BY CASE type WHEN 'gift' THEN 1 WHEN 'username' THEN 2 ELSE 3 END, COALESCE(purchased_at, created_at) DESC"
+    "ORDER BY CASE type WHEN 'username' THEN 1 WHEN 'number' THEN 2 WHEN 'gift' THEN 3 ELSE 4 END, COALESCE(purchased_at, created_at) DESC"
   ].join(' ')).all(userId).map(nftItem);
 }
 
@@ -371,13 +377,16 @@ app.put('/api/profile', auth, (req, res) => {
     profile_bg_color: cleanColor(req.body.profile_bg_color ?? current.profile_bg_color),
     profile_bg_emoji: clean(req.body.profile_bg_emoji ?? current.profile_bg_emoji, 12),
     profile_music_title: clean(req.body.profile_music_title ?? current.profile_music_title, 80),
-    profile_music_url: clean(req.body.profile_music_url ?? current.profile_music_url, 500)
+    profile_music_url: clean(req.body.profile_music_url ?? current.profile_music_url, 500),
+    profile_music_cover: clean(req.body.profile_music_cover ?? current.profile_music_cover, 500),
+    profile_music_artist: clean(req.body.profile_music_artist ?? current.profile_music_artist, 80)
   };
 
   db.prepare([
     'UPDATE users SET display_name = ?, bio = ?, status = ?, profile_emoji = ?,',
     'theme = ?, accent = ?, wallpaper = ?, bubble_style = ?,',
-    'profile_bg_color = ?, profile_bg_emoji = ?, profile_music_title = ?, profile_music_url = ?',
+    'profile_bg_color = ?, profile_bg_emoji = ?, profile_music_title = ?, profile_music_url = ?,',
+    'profile_music_cover = ?, profile_music_artist = ?',
     'WHERE id = ?'
   ].join(' ')).run(
     next.display_name,
@@ -392,6 +401,8 @@ app.put('/api/profile', auth, (req, res) => {
     next.profile_bg_emoji,
     next.profile_music_title,
     next.profile_music_url,
+    next.profile_music_cover,
+    next.profile_music_artist,
     req.user.id
   );
 
@@ -419,6 +430,13 @@ app.post('/api/profile/music', auth, audioUpload.single('music'), (req, res) => 
   res.json({ music, user: publicUser(getUserById(req.user.id)) });
 });
 
+app.post('/api/profile/music-cover', auth, upload.single('cover'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Выбери изображение обложки' });
+  const cover = '/uploads/' + req.file.filename;
+  db.prepare('UPDATE users SET profile_music_cover = ? WHERE id = ?').run(cover, req.user.id);
+  res.json({ cover, user: publicUser(getUserById(req.user.id)) });
+});
+
 app.get('/api/marketplace', auth, (req, res) => {
   const user = getUserById(req.user.id);
   if (!user) return res.status(404).json({ error: 'Профиль не найден' });
@@ -429,13 +447,13 @@ app.get('/api/marketplace', auth, (req, res) => {
   ].join(', ');
 
   const items = db.prepare([
-    'SELECT id, type, title, image, price, owner_id, profile_visible, created_at, purchased_at',
-    'FROM nft_items WHERE owner_id IS NULL',
+    'SELECT id, type, title, image, price, owner_id, profile_visible, total_supply, sold_count, template_id, created_at, purchased_at',
+    "FROM nft_items WHERE owner_id IS NULL AND template_id = ''",
     'ORDER BY ' + order
   ].join(' ')).all().map(nftItem);
 
   const inventory = db.prepare([
-    'SELECT id, type, title, image, price, owner_id, profile_visible, created_at, purchased_at',
+    'SELECT id, type, title, image, price, owner_id, profile_visible, total_supply, sold_count, template_id, created_at, purchased_at',
     'FROM nft_items WHERE owner_id = ?',
     'ORDER BY COALESCE(purchased_at, created_at) DESC'
   ].join(' ')).all(req.user.id).map(nftItem);
@@ -454,11 +472,10 @@ app.post('/api/marketplace/:itemId/buy', auth, (req, res) => {
 
   const buy = db.transaction(() => {
     const item = db.prepare([
-      'SELECT id, type, title, image, price, owner_id, profile_visible, created_at, purchased_at',
+      'SELECT id, type, title, image, price, owner_id, profile_visible, total_supply, sold_count, template_id, created_at, purchased_at',
       'FROM nft_items WHERE id = ?'
     ].join(' ')).get(itemId);
     if (!item) return { status: 404, error: 'NFT не найден' };
-    if (item.owner_id) return { status: 400, error: 'Этот NFT уже купили' };
 
     const user = getUserById(req.user.id);
     if (!user) return { status: 404, error: 'Профиль не найден' };
@@ -467,6 +484,26 @@ app.post('/api/marketplace/:itemId/buy', auth, (req, res) => {
       return { status: 400, error: 'Не хватает доксиков' };
     }
 
+    const supply = Number(item.total_supply || 1);
+    const sold = Number(item.sold_count || 0);
+
+    if (item.type === 'gift' && supply > 1) {
+      if (sold >= supply) return { status: 400, error: 'Тираж распродан' };
+      db.prepare('UPDATE users SET doxiki_balance = doxiki_balance - ? WHERE id = ?').run(price, req.user.id);
+      db.prepare('UPDATE nft_items SET sold_count = sold_count + 1 WHERE id = ?').run(itemId);
+      const copyId = randomUUID();
+      db.prepare([
+        'INSERT INTO nft_items (id, type, title, image, price, owner_id, template_id, total_supply, sold_count, profile_visible, created_by, purchased_at)',
+        'VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, 0, ?, unixepoch())'
+      ].join(' ')).run(copyId, item.type, item.title, item.image, item.price, req.user.id, item.id, req.user.id);
+      return {
+        ok: true,
+        balance: Number(user.doxiki_balance || 0) - price,
+        item: nftItem({ ...item, id: copyId, owner_id: req.user.id, template_id: item.id, purchased_at: Math.floor(Date.now() / 1000) })
+      };
+    }
+
+    if (item.owner_id) return { status: 400, error: 'Этот NFT уже купили' };
     db.prepare('UPDATE users SET doxiki_balance = doxiki_balance - ? WHERE id = ?').run(price, req.user.id);
     db.prepare([
       'UPDATE nft_items SET owner_id = ?, purchased_at = unixepoch()',
@@ -489,7 +526,7 @@ app.put('/api/profile/nfts/:itemId', auth, (req, res) => {
   const itemId = clean(req.params.itemId, 100);
   const visible = req.body.visible ? 1 : 0;
   const item = db.prepare([
-    'SELECT id, type, title, image, price, owner_id, profile_visible, created_at, purchased_at',
+    'SELECT id, type, title, image, price, owner_id, profile_visible, total_supply, sold_count, template_id, created_at, purchased_at',
     'FROM nft_items WHERE id = ? AND owner_id = ?'
   ].join(' ')).get(itemId, req.user.id);
 
@@ -506,6 +543,7 @@ app.put('/api/profile/nfts/:itemId', auth, (req, res) => {
 app.post('/api/admin/nft-gifts', auth, adminOnly, upload.single('image'), (req, res) => {
   const title = clean(req.body.title, 64) || 'NFT подарок';
   const price = parseDoxikiAmount(req.body.price, true);
+  const quantity = Math.max(1, Math.min(100000, Number(req.body.quantity) || 1));
 
   if (price === null) return res.status(400).json({ error: 'Укажи цену в доксиках' });
   if (!req.file) return res.status(400).json({ error: 'Загрузи фото NFT подарка' });
@@ -515,13 +553,15 @@ app.post('/api/admin/nft-gifts', auth, adminOnly, upload.single('image'), (req, 
     type: 'gift',
     title,
     image: '/uploads/' + req.file.filename,
-    price
+    price,
+    total_supply: quantity,
+    sold_count: 0
   };
 
   db.prepare([
-    'INSERT INTO nft_items (id, type, title, image, price, created_by)',
-    'VALUES (?, ?, ?, ?, ?, ?)'
-  ].join(' ')).run(item.id, item.type, item.title, item.image, item.price, req.user.id);
+    'INSERT INTO nft_items (id, type, title, image, price, total_supply, sold_count, created_by)',
+    'VALUES (?, ?, ?, ?, ?, ?, 0, ?)'
+  ].join(' ')).run(item.id, item.type, item.title, item.image, item.price, item.total_supply, req.user.id);
 
   res.json({ ok: true, item: nftItem(item) });
 });
@@ -603,6 +643,34 @@ app.post('/api/admin/access', auth, ownerOnly, (req, res) => {
     }
   });
 });
+
+  app.post('/api/admin/impersonate', auth, ownerOnly, (req, res) => {
+    const username = normalizeUsername(req.body.username);
+    if (!username) return res.status(400).json({ error: 'Введи юзернейм' });
+
+    const target = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    if (!target) return res.status(404).json({ error: 'Пользователь не найден' });
+
+    res.json({ token: signUser(target), user: publicUser(target) });
+  });
+
+  app.get('/api/admin/users', auth, adminOnly, (req, res) => {
+    const users = db.prepare([
+      'SELECT id, username, display_name, avatar, bio, status, doxiki_balance, is_admin, created_at',
+      'FROM users ORDER BY created_at DESC LIMIT 200'
+    ].join(' ')).all();
+    res.json(users.map(u => ({
+      id: u.id,
+      username: u.username,
+      display_name: u.display_name,
+      avatar: u.avatar || '',
+      bio: u.bio || '',
+      status: u.status || '',
+      doxiki_balance: Number(u.doxiki_balance || 0),
+      is_admin: Boolean(u.is_admin),
+      created_at: u.created_at
+    })));
+  });
 
 app.get('/api/users/search', auth, (req, res) => {
   const query = clean(req.query.q, 32);

@@ -333,37 +333,63 @@
       width: max-content;
     }
 
+    /* ===== TELEGRAM-STYLE MESSAGES ===== */
     .messages {
       flex: 1;
       min-height: 0;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 3px;
       background-image: var(--wallpaper);
       background-size: 24px 24px;
+      scroll-behavior: smooth;
     }
     .message {
       max-width: min(68%, 680px);
-      display: grid;
-      gap: 3px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-bottom: 2px;
     }
-    .message.mine { align-self: flex-end; justify-items: end; }
-    .message.theirs { align-self: flex-start; justify-items: start; }
-    .message-sender { color: var(--accent); font-size: 12px; padding: 0 8px; }
+    .message.mine { align-self: flex-end; }
+    .message.theirs { align-self: flex-start; }
+    .message.group-start { margin-top: 8px; }
+    .message-sender { color: var(--accent); font-size: 12px; font-weight: 600; padding: 0 12px 2px; }
     .message-bubble {
-      padding: 10px 13px;
+      position: relative;
+      padding: 8px 12px;
+      padding-bottom: 18px;
       border-radius: 18px;
       line-height: 1.42;
       word-break: break-word;
       white-space: pre-wrap;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
     }
-    body.bubbles-compact .message-bubble { border-radius: 8px; padding: 8px 11px; }
-    .mine .message-bubble { background: var(--accent); color: var(--accent-text); border-bottom-right-radius: 5px; }
-    .theirs .message-bubble { background: var(--bubble-other); color: var(--text); border-bottom-left-radius: 5px; }
-    .message-meta { color: var(--muted); font-size: 11px; padding: 0 8px; }
+    body.bubbles-compact .message-bubble { border-radius: 8px; padding: 7px 10px; padding-bottom: 16px; }
+    .mine .message-bubble {
+      background: var(--accent);
+      color: var(--accent-text);
+      border-bottom-right-radius: 5px;
+    }
+    .theirs .message-bubble {
+      background: var(--bubble-other);
+      color: var(--text);
+      border-bottom-left-radius: 5px;
+    }
+    .message-meta {
+      position: absolute;
+      right: 10px;
+      bottom: 4px;
+      color: rgba(255,255,255,0.55);
+      font-size: 11px;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .theirs .message-meta { color: var(--muted); }
+
     .composer {
       min-height: 72px;
       padding: 12px 16px;
@@ -415,16 +441,19 @@
     .avatar-editor { display: grid; justify-items: center; gap: 12px; }
     .profile-target { cursor: pointer; }
     .profile-target:hover { filter: brightness(1.08); }
-    .profile-view { display: grid; gap: 18px; }
+
+    /* ===== TELEGRAM-STYLE PROFILE VIEW ===== */
+    .profile-view { display: grid; gap: 0; }
     .profile-card {
       position: relative;
-      display: grid;
-      gap: 18px;
-      padding: 16px;
-      border: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 20px;
       border-radius: 8px;
       background: var(--panel-2);
       overflow: hidden;
+      text-align: center;
     }
     .profile-card > * { position: relative; z-index: 1; }
     .profile-bg-emoji {
@@ -438,6 +467,194 @@
       pointer-events: none;
       user-select: none;
     }
+    .tg-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 3px solid color-mix(in srgb, var(--accent) 60%, transparent);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      background: var(--accent);
+      color: var(--accent-text);
+      font-size: 38px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .tg-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .tg-name {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .tg-username {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+    .tg-nft-usernames {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      justify-content: center;
+      margin-top: 2px;
+      margin-bottom: 6px;
+    }
+    .tg-nft-username {
+      font-size: 13px;
+      color: var(--accent);
+      opacity: 0.8;
+    }
+    .tg-online {
+      font-size: 13px;
+      color: var(--good);
+      margin-bottom: 16px;
+    }
+    .tg-online.offline { color: var(--muted); }
+
+    /* Profile action buttons (Message, Mute, More) */
+    .tg-actions {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+    .tg-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 12px;
+      transition: background 0.15s;
+      min-width: 64px;
+    }
+    .tg-action:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--text); }
+    .tg-action-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--accent) 15%, var(--panel));
+      color: var(--accent);
+      font-size: 18px;
+      border: 1px solid var(--line);
+    }
+    .tg-action span:last-child { font-size: 12px; }
+
+    /* Profile info rows (like Telegram) */
+    .tg-info-section {
+      background: var(--panel);
+      border-radius: 8px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .tg-info-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      cursor: default;
+    }
+    .tg-info-row:last-child { border-bottom: none; }
+    .tg-info-value {
+      font-size: 15px;
+      color: var(--text);
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+    .tg-info-label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Music player in profile (Telegram-style) */
+    .tg-music-player {
+      display: grid;
+      grid-template-columns: 48px 1fr 36px;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--panel);
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+    .tg-music-cover {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--accent) 20%, var(--field));
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      font-size: 20px;
+    }
+    .tg-music-cover img { width: 100%; height: 100%; object-fit: cover; }
+    .tg-music-info { min-width: 0; }
+    .tg-music-title { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tg-music-artist { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tg-music-play {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+      color: var(--accent-text);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      transition: transform 0.15s;
+    }
+    .tg-music-play:hover { transform: scale(1.1); }
+    .tg-music-audio { display: none; }
+
+    /* Profile NFT gifts showcase */
+    .tg-gifts-section {
+      background: var(--panel);
+      border-radius: 8px;
+      margin-top: 8px;
+      padding: 12px 16px;
+    }
+    .tg-gifts-title { font-size: 14px; color: var(--accent); font-weight: 600; margin-bottom: 10px; }
+    .tg-gifts-grid {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .tg-gift-card {
+      flex: 0 0 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .tg-gift-art {
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--accent) 15%, var(--field));
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent-text);
+    }
+    .tg-gift-art img { width: 100%; height: 100%; object-fit: cover; }
+    .tg-gift-name { font-size: 11px; text-align: center; color: var(--muted); max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Profile hero for editing */
     .profile-hero {
       display: grid;
       grid-template-columns: 112px minmax(0, 1fr);
@@ -518,6 +735,7 @@
     .swatch.active { outline: 3px solid var(--text); }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 
+    /* ===== MARKETPLACE ===== */
     .market-wallet {
       display: flex;
       align-items: center;
@@ -550,6 +768,23 @@
       cursor: pointer;
     }
     .market-tabs button.active { background: var(--accent); color: var(--accent-text); }
+    .market-filter-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .market-filter-btn {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s;
+    }
+    .market-filter-btn.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
     .nft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
     .nft-card {
       min-width: 0;
@@ -557,12 +792,14 @@
       gap: 10px;
       padding: 12px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 12px;
       background: var(--panel-2);
+      transition: transform 0.15s, box-shadow 0.15s;
     }
+    .nft-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
     .nft-art {
       aspect-ratio: 1 / 1;
-      border-radius: 8px;
+      border-radius: 10px;
       display: grid;
       place-items: center;
       overflow: hidden;
@@ -575,10 +812,63 @@
     .nft-type { color: var(--muted); font-size: 12px; text-transform: uppercase; }
     .nft-title { font-weight: 760; overflow-wrap: anywhere; }
     .nft-price { color: var(--muted); font-size: 13px; }
+    .nft-supply {
+      font-size: 12px;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      padding: 3px 8px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .nft-soldout {
+      font-size: 12px;
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+      padding: 3px 8px;
+      border-radius: 999px;
+      display: inline-block;
+    }
     .nft-actions { display: grid; gap: 8px; }
+
+    /* ===== ADMIN PANEL ===== */
     .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
     .admin-section { display: grid; gap: 12px; padding-top: 2px; }
     .admin-section h3 { margin: 0; font-size: 15px; }
+    .admin-user-list {
+      max-height: 240px;
+      overflow-y: auto;
+      display: grid;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .admin-user-row {
+      display: grid;
+      grid-template-columns: 36px 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .admin-user-row:hover { border-color: var(--accent); }
+    .admin-user-row .avatar { width: 36px; height: 36px; font-size: 13px; }
+    .admin-user-info { min-width: 0; }
+    .admin-user-info .user-name { font-size: 14px; font-weight: 600; }
+    .admin-user-info .user-meta { font-size: 12px; }
+    .admin-impersonate-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--accent);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .admin-impersonate-btn:hover { background: var(--accent); color: var(--accent-text); }
 
     .user-results { display: grid; gap: 6px; margin-top: 12px; }
     .user-row {
@@ -768,41 +1058,49 @@
 
         <div class="settings-section">
           <h3>Оформление профиля</h3>
-          <div class="choice-grid">
+          <div class="form-stack">
             <label class="field">
-              <span>Цвет фона</span>
+              <span>Цвет фона профиля</span>
               <input id="profile-bg-color" type="color" value="#20242b">
             </label>
             <label class="field">
               <span>Фоновый эмодзи</span>
-              <input id="profile-bg-emoji" maxlength="12" placeholder="⭐">
+              <input id="profile-bg-emoji" maxlength="12">
             </label>
           </div>
         </div>
 
         <div class="settings-section">
-          <h3>Музыка в профиле</h3>
-          <div class="choice-grid">
+          <h3>Музыка профиля</h3>
+          <div class="form-stack">
             <label class="field">
-              <span>Название трека</span>
-              <input id="profile-music-title" maxlength="80" placeholder="Мой трек">
+              <span>Название песни</span>
+              <input id="profile-music-title" maxlength="80" placeholder="Название">
             </label>
             <label class="field">
-              <span>Ссылка на музыку</span>
+              <span>Исполнитель</span>
+              <input id="profile-music-artist" maxlength="80" placeholder="Исполнитель">
+            </label>
+            <label class="field">
+              <span>Аудио файл</span>
+              <input id="profile-music-file" type="file" accept="audio/*">
+            </label>
+            <label class="field">
+              <span>Обложка</span>
+              <input id="profile-music-cover-file" type="file" accept="image/*">
+            </label>
+            <label class="field">
+              <span>Или URL аудио</span>
               <input id="profile-music-url" maxlength="500" placeholder="https://...">
             </label>
           </div>
-          <label class="field">
-            <span>Или загрузить аудио-файл</span>
-            <input id="profile-music-file" type="file" accept="audio/*">
-          </label>
         </div>
 
         <div class="settings-section">
           <h3>Тема</h3>
-          <div id="theme-options" class="choice-grid">
-            <button class="choice-btn" type="button" data-theme="midnight">Ночь</button>
-            <button class="choice-btn" type="button" data-theme="day">День</button>
+          <div class="choice-grid">
+            <button class="choice-btn" type="button" data-theme="midnight">Полночь</button>
+            <button class="choice-btn" type="button" data-theme="day">Светлая</button>
             <button class="choice-btn" type="button" data-theme="forest">Лес</button>
             <button class="choice-btn" type="button" data-theme="rose">Роза</button>
           </div>
@@ -810,20 +1108,20 @@
 
         <div class="settings-section">
           <h3>Акцент</h3>
-          <div id="accent-options" class="swatches">
-            <button class="swatch" type="button" data-accent="#2f8fed" style="background:#2f8fed"></button>
-            <button class="swatch" type="button" data-accent="#43c478" style="background:#43c478"></button>
-            <button class="swatch" type="button" data-accent="#f05d5e" style="background:#f05d5e"></button>
-            <button class="swatch" type="button" data-accent="#d0922f" style="background:#d0922f"></button>
-            <button class="swatch" type="button" data-accent="#8a6ff0" style="background:#8a6ff0"></button>
-            <button class="swatch" type="button" data-accent="#0f9f9a" style="background:#0f9f9a"></button>
+          <div class="swatches">
+            <button class="swatch" type="button" style="background:#2f8fed" data-accent="#2f8fed"></button>
+            <button class="swatch" type="button" style="background:#7c5bf5" data-accent="#7c5bf5"></button>
+            <button class="swatch" type="button" style="background:#e04444" data-accent="#e04444"></button>
+            <button class="swatch" type="button" style="background:#ee8537" data-accent="#ee8537"></button>
+            <button class="swatch" type="button" style="background:#43c478" data-accent="#43c478"></button>
+            <button class="swatch" type="button" style="background:#e44989" data-accent="#e44989"></button>
           </div>
         </div>
 
         <div class="settings-section">
-          <h3>Фон чата</h3>
-          <div id="wallpaper-options" class="choice-grid">
-            <button class="choice-btn" type="button" data-wallpaper="clean">Чистый</button>
+          <h3>Обои</h3>
+          <div class="choice-grid">
+            <button class="choice-btn" type="button" data-wallpaper="clean">Чисто</button>
             <button class="choice-btn" type="button" data-wallpaper="lines">Линии</button>
             <button class="choice-btn" type="button" data-wallpaper="grid">Сетка</button>
             <button class="choice-btn" type="button" data-wallpaper="dots">Точки</button>
@@ -862,49 +1160,30 @@
     </section>
   </div>
 
+  <!-- TELEGRAM-STYLE PROFILE VIEW -->
   <div id="user-profile-modal" class="modal-layer" hidden>
     <section class="modal narrow" role="dialog" aria-modal="true" aria-labelledby="user-profile-title">
       <header class="modal-head">
         <h2 id="user-profile-title">Профиль</h2>
         <button class="icon-btn" type="button" data-close="user-profile-modal" aria-label="Закрыть">×</button>
       </header>
-      <div class="modal-body">
+      <div class="modal-body" style="padding: 0;">
         <div class="profile-view">
           <div id="view-profile-card" class="profile-card">
             <div id="view-profile-bg-emoji" class="profile-bg-emoji"></div>
-            <div class="profile-hero">
-              <span id="view-profile-avatar" class="avatar large"></span>
-              <div>
-                <h3 id="view-profile-name"></h3>
-                <p id="view-profile-username"></p>
-                <div id="view-profile-online" class="profile-status-line"></div>
-              </div>
-            </div>
-
-            <div>
-              <div class="hint-text">О себе</div>
-              <div id="view-profile-bio" class="profile-bio-box"></div>
-            </div>
-
-            <div id="view-profile-music" class="profile-music" hidden></div>
-
-            <div class="profile-showcase">
-              <div class="hint-text">NFT в профиле</div>
-              <div id="view-profile-nfts" class="profile-nft-grid"></div>
-            </div>
-
-            <div class="profile-facts">
-              <div class="fact-row"><span>Статус</span><span id="view-profile-status"></span></div>
-              <div class="fact-row"><span>Регистрация</span><span id="view-profile-created"></span></div>
-              <div class="fact-row"><span>Общие чаты</span><span id="view-profile-shared"></span></div>
-              <div class="fact-row"><span>Шифрование</span><span id="view-profile-encryption"></span></div>
-            </div>
+            <div id="view-tg-avatar" class="tg-avatar"></div>
+            <div id="view-tg-name" class="tg-name"></div>
+            <div id="view-tg-username" class="tg-username"></div>
+            <div id="view-tg-nft-usernames" class="tg-nft-usernames"></div>
+            <div id="view-tg-online" class="tg-online"></div>
+            <div id="view-tg-actions" class="tg-actions"></div>
           </div>
 
-          <div class="modal-actions">
-            <button class="secondary-btn" type="button" data-close="user-profile-modal">Закрыть</button>
-            <button id="view-profile-message" class="primary-btn" type="button">Написать</button>
-          </div>
+          <div id="view-tg-music" class="tg-music-player" hidden></div>
+
+          <div id="view-tg-info" class="tg-info-section"></div>
+
+          <div id="view-tg-gifts" class="tg-gifts-section" hidden></div>
         </div>
       </div>
     </section>
@@ -927,6 +1206,13 @@
           <button id="market-tab-inventory" type="button" data-market-tab="inventory">Мои NFT</button>
         </div>
 
+        <div id="market-filters" class="market-filter-row">
+          <button class="market-filter-btn active" data-filter="all">Все</button>
+          <button class="market-filter-btn" data-filter="gift">Подарки</button>
+          <button class="market-filter-btn" data-filter="username">Юзернеймы</button>
+          <button class="market-filter-btn" data-filter="number">Номера</button>
+        </div>
+
         <div id="market-items" class="nft-grid"></div>
         <div id="inventory-items" class="nft-grid" hidden></div>
       </div>
@@ -940,6 +1226,16 @@
         <button class="icon-btn" type="button" data-close="admin-modal" aria-label="Закрыть">×</button>
       </header>
       <div class="modal-body">
+        <!-- Impersonate section -->
+        <div id="admin-impersonate-section" class="admin-section" style="margin-bottom: 18px;" hidden>
+          <h3>👤 Войти как пользователь</h3>
+          <div class="search-shell">
+            <span class="search-icon">⌕</span>
+            <input id="admin-user-search" placeholder="Поиск юзера" autocomplete="off">
+          </div>
+          <div id="admin-user-list" class="admin-user-list"></div>
+        </div>
+
         <div class="admin-grid">
           <form id="admin-gift-form" class="admin-section">
             <h3>NFT подарок</h3>
@@ -950,6 +1246,10 @@
             <label class="field">
               <span>Цена в доксиках</span>
               <input id="admin-gift-price" name="price" type="number" min="0" step="1" value="0">
+            </label>
+            <label class="field">
+              <span>Тираж (кол-во штук)</span>
+              <input id="admin-gift-quantity" name="quantity" type="number" min="1" step="1" value="1" placeholder="1">
             </label>
             <label class="field">
               <span>Фото</span>
@@ -1026,7 +1326,9 @@
     var searchTimer = null;
     var viewedProfile = null;
     var profileDraft = { theme: 'midnight', accent: '#2f8fed', wallpaper: 'lines', bubble_style: 'soft' };
-    var marketState = { tab: 'shop', items: [], inventory: [] };
+    var marketState = { tab: 'shop', filter: 'all', items: [], inventory: [] };
+    var lastSenderId = null;
+    var profileAudioEl = null;
 
     function $(id) { return document.getElementById(id); }
 
@@ -1304,6 +1606,7 @@
     async function openChat(chat) {
       currentChat = chat;
       currentChatId = chat.id;
+      lastSenderId = null;
       document.body.classList.add('chat-open');
       socket.emit('join_chat', chat.id);
       renderChats($('chat-filter').value || '');
@@ -1314,9 +1617,23 @@
       try {
         var messages = await api('/api/chats/' + encodeURIComponent(chat.id) + '/messages');
         for (var i = 0; i < messages.length; i++) await appendMessage(messages[i]);
+        scrollToBottom(box);
       } catch (error) {
         showToast(error.message);
       }
+    }
+
+    function scrollToBottom(box) {
+      if (!box) box = $('messages');
+      if (!box) return;
+      requestAnimationFrame(function() {
+        box.scrollTop = box.scrollHeight;
+      });
+    }
+
+    function isNearBottom(box) {
+      if (!box) return true;
+      return box.scrollHeight - box.scrollTop - box.clientHeight < 120;
     }
 
     function renderChatShell(chat) {
@@ -1389,11 +1706,16 @@
       if (!box || !currentChat) return;
       var plain = await plainMessageText(currentChat, msg);
       var mine = msg.sender_id === me.id;
+      var wasAtBottom = isNearBottom(box);
+
+      var isGroupStart = lastSenderId !== msg.sender_id;
+      lastSenderId = msg.sender_id;
 
       var wrap = document.createElement('div');
       wrap.className = 'message ' + (mine ? 'mine' : 'theirs');
+      if (isGroupStart) wrap.classList.add('group-start');
 
-      if (!mine) {
+      if (!mine && isGroupStart) {
         var sender = document.createElement('div');
         sender.className = 'message-sender';
         sender.textContent = msg.display_name || msg.username || currentChat.title;
@@ -1403,13 +1725,16 @@
       var bubble = document.createElement('div');
       bubble.className = 'message-bubble';
       bubble.textContent = plain;
-      var meta = document.createElement('div');
-      meta.className = 'message-meta';
-      meta.textContent = shortTime(msg.created_at) + (Number(msg.encrypted) ? '  ●' : '  ○');
 
-      wrap.append(bubble, meta);
+      var meta = document.createElement('span');
+      meta.className = 'message-meta';
+      meta.textContent = shortTime(msg.created_at) + (Number(msg.encrypted) ? '  🔒' : '');
+      bubble.appendChild(meta);
+
+      wrap.appendChild(bubble);
       box.appendChild(wrap);
-      box.scrollTop = box.scrollHeight;
+
+      if (wasAtBottom) scrollToBottom(box);
     }
 
     async function plainMessageText(chat, msg) {
@@ -1490,7 +1815,13 @@
       $('market-tab-inventory').classList.toggle('active', marketState.tab === 'inventory');
       $('market-items').hidden = marketState.tab !== 'shop';
       $('inventory-items').hidden = marketState.tab !== 'inventory';
-      renderNftList('market-items', marketState.items, false);
+      $('market-filters').hidden = marketState.tab !== 'shop';
+
+      var shopItems = marketState.items;
+      if (marketState.filter !== 'all') {
+        shopItems = shopItems.filter(function(item) { return item.type === marketState.filter; });
+      }
+      renderNftList('market-items', shopItems, false);
       renderNftList('inventory-items', marketState.inventory, true);
     }
 
@@ -1533,12 +1864,29 @@
 
         card.append(art, type, title, price);
 
+        // Supply info for gifts
+        if (!owned && item.type === 'gift' && item.total_supply > 1) {
+          var remaining = item.total_supply - item.sold_count;
+          if (remaining > 0) {
+            var supplyEl = document.createElement('div');
+            supplyEl.className = 'nft-supply';
+            supplyEl.textContent = 'Осталось ' + remaining + '/' + item.total_supply;
+            card.appendChild(supplyEl);
+          } else {
+            var soldOut = document.createElement('div');
+            soldOut.className = 'nft-soldout';
+            soldOut.textContent = 'Распродано';
+            card.appendChild(soldOut);
+          }
+        }
+
         if (!owned) {
+          var isSoldOut = item.type === 'gift' && item.total_supply > 1 && item.sold_count >= item.total_supply;
           var buy = document.createElement('button');
           buy.className = 'primary-btn';
           buy.type = 'button';
-          buy.textContent = 'Купить';
-          buy.disabled = Number(me && me.doxiki_balance || 0) < Number(item.price || 0);
+          buy.textContent = isSoldOut ? 'Распродано' : 'Купить';
+          buy.disabled = isSoldOut || Number(me && me.doxiki_balance || 0) < Number(item.price || 0);
           buy.addEventListener('click', function () { buyNft(item.id); });
           card.appendChild(buy);
         } else {
@@ -1583,13 +1931,91 @@
       }
     }
 
+    /* ===== ADMIN ===== */
     function openAdmin() {
       if (!me || !me.is_admin) {
         showToast('Админка доступна только владельцу');
         return;
       }
       $('admin-access-form').hidden = !me.is_owner_admin;
+      $('admin-impersonate-section').hidden = !me.is_owner_admin;
       $('admin-modal').hidden = false;
+      if (me.is_owner_admin) loadAdminUsers();
+    }
+
+    async function loadAdminUsers() {
+      try {
+        var users = await api('/api/admin/users');
+        renderAdminUsers(users);
+      } catch (error) {
+        showToast(error.message);
+      }
+    }
+
+    function renderAdminUsers(users) {
+      var box = $('admin-user-list');
+      box.innerHTML = '';
+      var q = ($('admin-user-search').value || '').toLowerCase().trim();
+
+      var filtered = users.filter(function(u) {
+        if (!q) return true;
+        return u.username.includes(q) || (u.display_name || '').toLowerCase().includes(q);
+      });
+
+      filtered.forEach(function(user) {
+        var row = document.createElement('div');
+        row.className = 'admin-user-row';
+
+        var avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        renderAvatar(avatar, user.avatar, user.display_name || user.username);
+
+        var info = document.createElement('div');
+        info.className = 'admin-user-info';
+        var name = document.createElement('div');
+        name.className = 'user-name';
+        name.textContent = user.display_name || user.username;
+        var meta = document.createElement('div');
+        meta.className = 'user-meta';
+        meta.textContent = '@' + user.username + ' · ' + formatDoxiki(user.doxiki_balance);
+        info.append(name, meta);
+
+        var btn = document.createElement('button');
+        btn.className = 'admin-impersonate-btn';
+        btn.textContent = 'Войти';
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          adminImpersonate(user.username);
+        });
+
+        row.append(avatar, info, btn);
+        box.appendChild(row);
+      });
+
+      if (!filtered.length) {
+        box.innerHTML = '<div class="empty-list">Нет пользователей</div>';
+      }
+    }
+
+    var adminUsersCache = [];
+    $('admin-user-search').addEventListener('input', function() {
+      if (adminUsersCache.length) renderAdminUsers(adminUsersCache);
+    });
+
+    async function adminImpersonate(username) {
+      try {
+        var data = await api('/api/admin/impersonate', {
+          method: 'POST',
+          body: { username: username }
+        });
+        showToast('Вход как @' + username);
+        closeModal('admin-modal');
+        privateKeyCache = null;
+        chatKeyCache = {};
+        saveSession(data);
+      } catch (error) {
+        showToast(error.message);
+      }
     }
 
     async function createAdminGift(event) {
@@ -1601,6 +2027,7 @@
         await api('/api/admin/nft-gifts', { method: 'POST', body: form });
         $('admin-gift-form').reset();
         $('admin-gift-price').value = '0';
+        $('admin-gift-quantity').value = '1';
         showToast('NFT подарок создан');
         if (!$('market-modal').hidden) await loadMarketplace();
       } catch (error) {
@@ -1681,6 +2108,7 @@
       }
     }
 
+    /* ===== PROFILE EDIT ===== */
     function openProfile() {
       profileDraft = {
         theme: me.theme || 'midnight',
@@ -1695,8 +2123,10 @@
       $('profile-bg-color').value = me.profile_bg_color || '#20242b';
       $('profile-bg-emoji').value = me.profile_bg_emoji || '';
       $('profile-music-title').value = me.profile_music_title || '';
+      $('profile-music-artist').value = me.profile_music_artist || '';
       $('profile-music-url').value = me.profile_music_url || '';
       $('profile-music-file').value = '';
+      $('profile-music-cover-file').value = '';
       renderAvatar($('profile-avatar'), me.avatar, me.display_name || me.username);
       updateChoiceUI();
       $('profile-modal').hidden = false;
@@ -1720,12 +2150,17 @@
             profile_bg_color: $('profile-bg-color').value,
             profile_bg_emoji: $('profile-bg-emoji').value.trim(),
             profile_music_title: $('profile-music-title').value.trim(),
+            profile_music_artist: $('profile-music-artist').value.trim(),
             profile_music_url: $('profile-music-url').value.trim()
           }
         });
         me = data.user;
         if ($('profile-music-file').files[0]) {
           data = await uploadProfileMusic(false);
+          me = data.user;
+        }
+        if ($('profile-music-cover-file').files[0]) {
+          data = await uploadProfileMusicCover();
           me = data.user;
         }
         localStorage.setItem('messenger:me', JSON.stringify(me));
@@ -1749,6 +2184,15 @@
       return data;
     }
 
+    async function uploadProfileMusicCover() {
+      var file = $('profile-music-cover-file').files[0];
+      if (!file) return { user: me };
+      var form = new FormData();
+      form.append('cover', file);
+      var data = await api('/api/profile/music-cover', { method: 'POST', body: form });
+      return data;
+    }
+
     async function uploadAvatar() {
       var file = $('avatar-input').files[0];
       if (!file) return;
@@ -1766,12 +2210,13 @@
       }
     }
 
+    /* ===== TELEGRAM-STYLE PROFILE VIEW ===== */
     async function openUserProfile(userId, fallbackUser) {
       if (!userId) return;
       try {
         var data = await api('/api/users/' + encodeURIComponent(userId) + '/profile');
         viewedProfile = data;
-        renderViewedProfile(data, fallbackUser);
+        renderTgProfile(data, fallbackUser);
         $('user-profile-modal').hidden = false;
       } catch (error) {
         if (!fallbackUser) {
@@ -1779,32 +2224,225 @@
           return;
         }
         viewedProfile = { user: fallbackUser, profile_nfts: [], is_self: fallbackUser.id === me.id, is_online: false, shared_chats: 0, direct_chat_id: null, encryption_ready: Boolean(fallbackUser.public_key) };
-        renderViewedProfile(viewedProfile, fallbackUser);
+        renderTgProfile(viewedProfile, fallbackUser);
         $('user-profile-modal').hidden = false;
       }
     }
 
-    function renderViewedProfile(data, fallbackUser) {
+    function renderTgProfile(data, fallbackUser) {
       var user = data.user || fallbackUser || {};
-      var name = (user.profile_emoji ? user.profile_emoji + ' ' : '') + (user.display_name || user.username || 'Профиль');
+      var nfts = data.profile_nfts || [];
+
+      // Card background
       $('view-profile-card').style.background = user.profile_bg_color || '#20242b';
       setText('view-profile-bg-emoji', user.profile_bg_emoji || '');
-      renderAvatar($('view-profile-avatar'), user.avatar, user.display_name || user.username);
-      setText('view-profile-name', name);
-      setText('view-profile-username', user.username ? '@' + user.username : '');
-      setText('view-profile-online', data.is_online ? 'онлайн' : 'не в сети');
-      setText('view-profile-bio', user.bio || 'Пока пусто');
-      renderProfileMusic(user);
-      renderProfileNfts(data.profile_nfts || []);
-      setText('view-profile-status', user.status || 'не указан');
-      setText('view-profile-created', user.created_at ? fullDate(user.created_at) : 'неизвестно');
-      setText('view-profile-shared', String(data.shared_chats || 0));
-      setText('view-profile-encryption', data.encryption_ready ? 'E2E готово' : 'серверное шифрование хранения');
-      $('view-profile-message').hidden = Boolean(data.is_self);
+
+      // Avatar
+      var avatarBox = $('view-tg-avatar');
+      avatarBox.innerHTML = '';
+      if (user.avatar) {
+        var img = document.createElement('img');
+        img.src = user.avatar;
+        img.alt = '';
+        avatarBox.appendChild(img);
+      } else {
+        avatarBox.textContent = initials(user.display_name || user.username);
+      }
+
+      // Name
+      var name = (user.profile_emoji ? user.profile_emoji + ' ' : '') + (user.display_name || user.username || 'Профиль');
+      setText('view-tg-name', name);
+
+      // Username
+      setText('view-tg-username', user.username ? '@' + user.username : '');
+
+      // NFT usernames and numbers under main username
+      var nftUsernamesBox = $('view-tg-nft-usernames');
+      nftUsernamesBox.innerHTML = '';
+      var nftUsernames = nfts.filter(function(n) { return n.type === 'username'; });
+      var nftNumbers = nfts.filter(function(n) { return n.type === 'number'; });
+
+      if (nftUsernames.length || nftNumbers.length) {
+        if (nftUsernames.length) {
+          var alsoText = document.createElement('span');
+          alsoText.className = 'tg-nft-username';
+          alsoText.style.color = 'var(--muted)';
+          alsoText.textContent = 'also';
+          nftUsernamesBox.appendChild(alsoText);
+          nftUsernames.forEach(function(n) {
+            var span = document.createElement('span');
+            span.className = 'tg-nft-username';
+            span.textContent = n.title.startsWith('@') ? n.title : '@' + n.title;
+            nftUsernamesBox.appendChild(span);
+          });
+        }
+      }
+
+      // Online status
+      var onlineEl = $('view-tg-online');
+      onlineEl.textContent = data.is_online ? 'онлайн' : 'был(а) недавно';
+      onlineEl.className = 'tg-online' + (data.is_online ? '' : ' offline');
+
+      // Action buttons
+      var actionsBox = $('view-tg-actions');
+      actionsBox.innerHTML = '';
+
+      if (!data.is_self) {
+        var msgAction = createTgAction('💬', 'Написать', function() { messageViewedProfile(); });
+        actionsBox.appendChild(msgAction);
+      }
+
+      var muteAction = createTgAction('🔇', 'Мьют', function() { showToast('Мьют пока не доступен'); });
+      actionsBox.appendChild(muteAction);
+
+      var moreAction = createTgAction('⋯', 'Ещё', function() { showToast('Доп. действия'); });
+      actionsBox.appendChild(moreAction);
+
+      // Music player
+      renderTgMusic(user);
+
+      // Info section (phone numbers, usernames, bio)
+      var infoBox = $('view-tg-info');
+      infoBox.innerHTML = '';
+
+      // NFT numbers as phone-like rows
+      nftNumbers.forEach(function(n) {
+        var row = document.createElement('div');
+        row.className = 'tg-info-row';
+        var val = document.createElement('div');
+        val.className = 'tg-info-value';
+        val.textContent = n.title;
+        var label = document.createElement('div');
+        label.className = 'tg-info-label';
+        label.textContent = 'NFT номер';
+        row.append(val, label);
+        infoBox.appendChild(row);
+      });
+
+      // Main username
+      if (user.username) {
+        var usernameRow = document.createElement('div');
+        usernameRow.className = 'tg-info-row';
+        var usernameVal = document.createElement('div');
+        usernameVal.className = 'tg-info-value';
+        usernameVal.style.color = 'var(--accent)';
+        usernameVal.textContent = '@' + user.username;
+        var usernameLabel = document.createElement('div');
+        usernameLabel.className = 'tg-info-label';
+        usernameLabel.textContent = 'Юзернейм';
+        usernameRow.append(usernameVal, usernameLabel);
+        infoBox.appendChild(usernameRow);
+      }
+
+      // NFT usernames
+      nftUsernames.forEach(function(n) {
+        var row = document.createElement('div');
+        row.className = 'tg-info-row';
+        var val = document.createElement('div');
+        val.className = 'tg-info-value';
+        val.style.color = 'var(--accent)';
+        val.textContent = n.title.startsWith('@') ? n.title : '@' + n.title;
+        var label = document.createElement('div');
+        label.className = 'tg-info-label';
+        label.textContent = 'NFT юзернейм';
+        row.append(val, label);
+        infoBox.appendChild(row);
+      });
+
+      // Bio
+      if (user.bio) {
+        var bioRow = document.createElement('div');
+        bioRow.className = 'tg-info-row';
+        var bioVal = document.createElement('div');
+        bioVal.className = 'tg-info-value';
+        bioVal.textContent = user.bio;
+        var bioLabel = document.createElement('div');
+        bioLabel.className = 'tg-info-label';
+        bioLabel.textContent = 'О себе';
+        bioRow.append(bioVal, bioLabel);
+        infoBox.appendChild(bioRow);
+      }
+
+      // Status
+      if (user.status) {
+        var statusRow = document.createElement('div');
+        statusRow.className = 'tg-info-row';
+        var statusVal = document.createElement('div');
+        statusVal.className = 'tg-info-value';
+        statusVal.textContent = user.status;
+        var statusLabel = document.createElement('div');
+        statusLabel.className = 'tg-info-label';
+        statusLabel.textContent = 'Статус';
+        statusRow.append(statusVal, statusLabel);
+        infoBox.appendChild(statusRow);
+      }
+
+      // Registration
+      var regRow = document.createElement('div');
+      regRow.className = 'tg-info-row';
+      var regVal = document.createElement('div');
+      regVal.className = 'tg-info-value';
+      regVal.textContent = user.created_at ? fullDate(user.created_at) : 'неизвестно';
+      var regLabel = document.createElement('div');
+      regLabel.className = 'tg-info-label';
+      regLabel.textContent = 'Регистрация';
+      regRow.append(regVal, regLabel);
+      infoBox.appendChild(regRow);
+
+      // Gifts section
+      var nftGifts = nfts.filter(function(n) { return n.type === 'gift'; });
+      var giftsSection = $('view-tg-gifts');
+      giftsSection.innerHTML = '';
+      if (nftGifts.length) {
+        giftsSection.hidden = false;
+        var giftsTitle = document.createElement('div');
+        giftsTitle.className = 'tg-gifts-title';
+        giftsTitle.textContent = 'Подарки (' + nftGifts.length + ')';
+        giftsSection.appendChild(giftsTitle);
+
+        var giftsGrid = document.createElement('div');
+        giftsGrid.className = 'tg-gifts-grid';
+        nftGifts.forEach(function(gift) {
+          var card = document.createElement('div');
+          card.className = 'tg-gift-card';
+          var art = document.createElement('div');
+          art.className = 'tg-gift-art';
+          if (gift.image) {
+            var img = document.createElement('img');
+            img.src = gift.image;
+            img.alt = '';
+            art.appendChild(img);
+          } else {
+            art.textContent = '🎁';
+          }
+          var gname = document.createElement('div');
+          gname.className = 'tg-gift-name';
+          gname.textContent = gift.title;
+          card.append(art, gname);
+          giftsGrid.appendChild(card);
+        });
+        giftsSection.appendChild(giftsGrid);
+      } else {
+        giftsSection.hidden = true;
+      }
     }
 
-    function renderProfileMusic(user) {
-      var box = $('view-profile-music');
+    function createTgAction(icon, label, onClick) {
+      var btn = document.createElement('button');
+      btn.className = 'tg-action';
+      btn.type = 'button';
+      var iconEl = document.createElement('span');
+      iconEl.className = 'tg-action-icon';
+      iconEl.textContent = icon;
+      var labelEl = document.createElement('span');
+      labelEl.textContent = label;
+      btn.append(iconEl, labelEl);
+      btn.addEventListener('click', onClick);
+      return btn;
+    }
+
+    function renderTgMusic(user) {
+      var box = $('view-tg-music');
       box.innerHTML = '';
       if (!user.profile_music_url) {
         box.hidden = true;
@@ -1812,47 +2450,48 @@
       }
       box.hidden = false;
 
-      var label = document.createElement('div');
-      label.className = 'hint-text';
-      label.textContent = user.profile_music_title || 'Музыка профиля';
-      var audio = document.createElement('audio');
-      audio.controls = true;
-      audio.src = user.profile_music_url;
-      box.append(label, audio);
-    }
-
-    function renderProfileNfts(items) {
-      var box = $('view-profile-nfts');
-      box.innerHTML = '';
-      if (!items.length) {
-        var empty = document.createElement('div');
-        empty.className = 'hint-text';
-        empty.textContent = 'Пока пусто';
-        box.appendChild(empty);
-        return;
+      var cover = document.createElement('div');
+      cover.className = 'tg-music-cover';
+      if (user.profile_music_cover) {
+        var coverImg = document.createElement('img');
+        coverImg.src = user.profile_music_cover;
+        coverImg.alt = '';
+        cover.appendChild(coverImg);
+      } else {
+        cover.textContent = '♪';
       }
 
-      items.forEach(function (item) {
-        var card = document.createElement('div');
-        card.className = 'profile-nft-card';
+      var info = document.createElement('div');
+      info.className = 'tg-music-info';
+      var title = document.createElement('div');
+      title.className = 'tg-music-title';
+      title.textContent = user.profile_music_title || 'Трек';
+      var artist = document.createElement('div');
+      artist.className = 'tg-music-artist';
+      artist.textContent = user.profile_music_artist || 'Неизвестный';
+      info.append(title, artist);
 
-        var art = document.createElement('div');
-        art.className = 'profile-nft-art';
-        if (item.image) {
-          var img = document.createElement('img');
-          img.src = item.image;
-          img.alt = '';
-          art.appendChild(img);
+      var audio = document.createElement('audio');
+      audio.className = 'tg-music-audio';
+      audio.src = user.profile_music_url;
+      audio.id = 'profile-audio-player';
+
+      var playBtn = document.createElement('button');
+      playBtn.className = 'tg-music-play';
+      playBtn.type = 'button';
+      playBtn.textContent = '▶';
+      playBtn.addEventListener('click', function() {
+        if (audio.paused) {
+          audio.play();
+          playBtn.textContent = '⏸';
         } else {
-          art.textContent = nftSymbol(item.type);
+          audio.pause();
+          playBtn.textContent = '▶';
         }
-
-        var title = document.createElement('div');
-        title.className = 'profile-nft-name';
-        title.textContent = item.title;
-        card.append(art, title);
-        box.appendChild(card);
       });
+      audio.addEventListener('ended', function() { playBtn.textContent = '▶'; });
+
+      box.append(cover, info, playBtn, audio);
     }
 
     async function messageViewedProfile() {
@@ -2003,6 +2642,7 @@
       document.querySelectorAll('[data-bubble]').forEach(function (btn) { btn.classList.toggle('active', btn.dataset.bubble === profileDraft.bubble_style); });
     }
 
+    /* ===== CRYPTO ===== */
     function hasClientCrypto() {
       return Boolean(window.crypto && window.crypto.subtle);
     }
@@ -2101,6 +2741,7 @@
       return bytes.buffer;
     }
 
+    /* ===== EVENT LISTENERS ===== */
     $('login-tab').addEventListener('click', function () { showAuthTab('login'); });
     $('register-tab').addEventListener('click', function () { showAuthTab('register'); });
     $('login-form').addEventListener('submit', loginAccount);
@@ -2115,7 +2756,7 @@
     $('profile-save').addEventListener('click', saveProfile);
     $('avatar-btn').addEventListener('click', function () { $('avatar-input').click(); });
     $('avatar-input').addEventListener('change', uploadAvatar);
-    $('view-profile-message').addEventListener('click', messageViewedProfile);
+    $('view-profile-message') && document.addEventListener('click', function() {});
     $('admin-gift-form').addEventListener('submit', createAdminGift);
     $('admin-asset-form').addEventListener('submit', createAdminAsset);
     $('admin-doxiki-form').addEventListener('submit', grantDoxiki);
@@ -2126,6 +2767,13 @@
       if (closeId) closeModal(closeId);
       if (event.target.dataset.marketTab) {
         marketState.tab = event.target.dataset.marketTab;
+        renderMarketplace();
+      }
+      if (event.target.dataset.filter !== undefined) {
+        marketState.filter = event.target.dataset.filter;
+        document.querySelectorAll('.market-filter-btn').forEach(function(b) {
+          b.classList.toggle('active', b.dataset.filter === marketState.filter);
+        });
         renderMarketplace();
       }
       if (event.target.dataset.theme) profileDraft.theme = event.target.dataset.theme;
