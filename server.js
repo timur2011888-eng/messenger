@@ -85,6 +85,17 @@ const voiceUpload = multer({
   }
 });
 
+const adminSoundUpload = multer({
+  storage,
+  limits: { fileSize: 12 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype || !(file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/'))) {
+      return cb(new Error('Можно загрузить только аудио'));
+    }
+    cb(null, true);
+  }
+});
+
 const messageUpload = multer({
   storage,
   limits: { fileSize: 25 * 1024 * 1024 },
@@ -1083,6 +1094,51 @@ app.post('/api/admin/fun', auth, ownerOnly, async (req, res) => {
   };
   const delivered = socketsForUser(target.id).size;
   notifyUsers([target.id], 'admin_fun', payload);
+
+  res.json({
+    ok: true,
+    delivered,
+    user: { id: target.id, username: target.username, display_name: target.display_name }
+  });
+});
+
+app.post('/api/admin/sound', auth, ownerOnly, adminSoundUpload.single('sound'), async (req, res) => {
+  const username = normalizeUsername(req.body.username);
+  if (!username) return res.status(400).json({ error: 'Введи юзернейм' });
+
+  const target = await db.prepare('SELECT id, username, display_name FROM users WHERE username = ?').get(username);
+  if (!target) return res.status(404).json({ error: 'Пользователь не найден' });
+
+  let soundUrl = clean(req.body.sound_url, 2000);
+  if (soundUrl) {
+    try {
+      const parsed = new URL(soundUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') soundUrl = '';
+    } catch {
+      soundUrl = '';
+    }
+  }
+  if (req.file) {
+    try {
+      soundUrl = await uploadToSupabase(req.file, 'admin-sounds');
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Не удалось загрузить звук' });
+    }
+  }
+  if (!soundUrl) return res.status(400).json({ error: 'Загрузи звук или вставь ссылку' });
+
+  const volume = Math.max(0, Math.min(1, Number(req.body.volume) || 1));
+  const duration = Math.max(1000, Math.min(15000, Number(req.body.duration) || 8000));
+  const payload = {
+    sound_url: soundUrl,
+    volume,
+    duration,
+    from: req.user.username,
+    created_at: Date.now()
+  };
+  const delivered = socketsForUser(target.id).size;
+  notifyUsers([target.id], 'admin_sound', payload);
 
   res.json({
     ok: true,
