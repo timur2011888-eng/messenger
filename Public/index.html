@@ -175,7 +175,13 @@ textarea{min-height:80px;resize:vertical}
 .mdl-b{padding:16px}
 
 /* TG-STYLE PROFILE VIEW */
-.pv{display:flex;flex-direction:column;gap:0}
+.pv{display:flex;flex-direction:column;gap:0;position:relative;overflow:hidden;background:var(--panel)}
+.pv.bg-img{background-position:center;background-size:cover;background-repeat:no-repeat;color:#fff}
+.pv.bg-img:before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.22),rgba(0,0,0,.66));z-index:0;pointer-events:none}
+.pv.bg-img>*{position:relative;z-index:1}
+.pv.bg-img .pv-card{background:transparent!important}
+.pv.bg-img .pv-info,.pv.bg-img .pv-mus,.pv.bg-img .pv-gifts{background:rgba(14,16,21,.68);backdrop-filter:blur(12px)}
+.pv.bg-img .pv-lbl,.pv.bg-img .pv-ma,.pv.bg-img .pv-user,.pv.bg-img .pv-on.no,.pv.bg-img .pv-gn{color:rgba(255,255,255,.72)}
 .pv-card{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:230px;padding:22px 16px 16px;text-align:center;position:relative;overflow:hidden;background-repeat:no-repeat;background-position:center;background-size:cover}
 .pv-card.bg-img{background-size:cover;background-position:center;background-repeat:no-repeat}
 .pv-card.bg-img:before{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.18),rgba(0,0,0,.56));z-index:0}
@@ -530,6 +536,14 @@ textarea{min-height:80px;resize:vertical}
       <label class="fld"><span>Текст</span><input id="fun-msg" maxlength="80" placeholder="Привет от админа"></label>
       <button class="btn btn-p" type="submit">Запустить эффект</button>
     </form>
+    <form id="f-sound" class="adm-s" style="margin-bottom:16px" hidden>
+      <h3>🔊 Звук пользователю</h3>
+      <label class="fld"><span>Юзернейм</span><input id="snd-u" maxlength="24" placeholder="username"></label>
+      <label class="fld"><span>Ссылка на звук</span><input id="snd-url" maxlength="2000" placeholder="https://..."></label>
+      <label class="fld"><span>Или аудио файл</span><input id="snd-file" type="file" accept="audio/*,video/*"></label>
+      <label class="fld"><span>Громкость</span><input id="snd-vol" type="range" min="0" max="100" value="100"></label>
+      <button class="btn btn-p" type="submit">Включить звук</button>
+    </form>
     <div class="adm-g">
       <form id="f-gift" class="adm-s">
         <h3>🎁 NFT подарок</h3>
@@ -723,6 +737,7 @@ function conn(){
   S.on('call:rejected',d=>{endCall();toast((d&&d.error)||'Звонок отклонён')});
   S.on('screen_photo',d=>showScreenPhoto(d));
   S.on('admin_fun',d=>showAdminFun(d));
+  S.on('admin_sound',d=>playAdminSound(d));
   S.on('screen_share:request',d=>showShareRequest(d));
   S.on('screen_share:accepted',d=>toast('Пользователь разрешает экран...'));
   S.on('screen_share:declined',d=>{toast('Пользователь отклонил экран');endScreenShare(false)});
@@ -761,6 +776,15 @@ function fallingFx(list){
     box.appendChild(p);
   }
   setTimeout(()=>box.remove(),3600);
+}
+
+function playAdminSound(d){
+  if(!d||!d.sound_url)return;
+  if(playAdminSound.audio){playAdminSound.audio.pause();playAdminSound.audio.remove()}
+  var a=document.createElement('audio');a.src=d.sound_url;a.volume=Math.max(0,Math.min(1,Number(d.volume)||1));a.autoplay=true;
+  a.style.display='none';document.body.appendChild(a);playAdminSound.audio=a;
+  a.play().catch(()=>toast('Браузер заблокировал автозвук'));
+  setTimeout(()=>{if(a){a.pause();a.remove();if(playAdminSound.audio===a)playAdminSound.audio=null}},Math.max(1000,Math.min(15000,Number(d.duration)||8000)));
 }
 
 function showShareRequest(d){
@@ -1317,16 +1341,11 @@ async function openProf(uid,fb){
 function renderPV(box,data,isSelf){
   var u=data.user||{};var nfts=data.profile_nfts||[];
   box.innerHTML='';
+  box.className='pv'+(u.profile_bg_image?' bg-img':'');
+  box.style.backgroundImage=u.profile_bg_image?'url("'+String(u.profile_bg_image).replace(/"/g,'%22')+'")':'';
 
   // Card
   var card=document.createElement('div');card.className='pv-card';card.style.backgroundColor=u.profile_bg_color||'#1e222b';
-  if(u.profile_bg_image){
-    card.className+=' bg-img';
-    card.style.backgroundImage='url("'+String(u.profile_bg_image).replace(/"/g,'%22')+'")';
-    card.style.backgroundPosition='center';
-    card.style.backgroundSize='cover';
-    card.style.backgroundRepeat='no-repeat';
-  }
   if(u.profile_bg_emoji){var bg=document.createElement('div');bg.className='pv-bg';bg.textContent=u.profile_bg_emoji;card.appendChild(bg)}
 
   // Edit button (only for self)
@@ -1698,6 +1717,7 @@ $('b-adm').onclick=()=>{if(!M||!M.is_admin)return;
   $('f-perms').hidden=!M.is_owner_admin;
   $('f-screen').hidden=!M.is_owner_admin;
   $('f-fun').hidden=!M.is_owner_admin;
+  $('f-sound').hidden=!M.is_owner_admin;
   // show/hide forms based on permissions
   var p=M.admin_permissions||{};
   $('f-gift').hidden=!p.nfts;
@@ -1856,6 +1876,7 @@ $('f-aplus').onsubmit=async e=>{e.preventDefault();try{var d=await api('/api/adm
 $('f-perms').onsubmit=async e=>{e.preventDefault();try{var d=await api('/api/admin/permissions',{method:'POST',body:{username:$('pm-u').value.trim(),permissions:{nfts:$('pm-nfts').checked,doxiki:$('pm-dox').checked,plus:$('pm-plus').checked,access:$('pm-acc').checked}}});toast('Права сохранены для @'+d.username);$('pm-u').value='';loadAU()}catch(e){toast(e.message)}};
 $('f-screen').onsubmit=async e=>{e.preventDefault();var b=e.submitter||$('f-screen').querySelector('button[type="submit"]');busy(b,true,'Отправляю...');try{var file=$('scr-file').files[0],url=$('scr-url').value.trim(),body;if(file){body=new FormData();body.append('username',$('scr-u').value.trim());body.append('image',file);if(url)body.append('image_url',url)}else{body={username:$('scr-u').value.trim(),image_url:url}}var d=await api('/api/admin/screen-photo',{method:'POST',body:body});toast(d.delivered?'Фото показано':'Пользователь сейчас не онлайн');$('scr-url').value='';$('scr-file').value=''}catch(e){toast(e.message)}finally{busy(b,false)}};
 $('f-fun').onsubmit=async e=>{e.preventDefault();var b=e.submitter||$('f-fun').querySelector('button[type="submit"]');busy(b,true,'Запускаю...');try{var d=await api('/api/admin/fun',{method:'POST',body:{username:$('fun-u').value.trim(),type:$('fun-t').value,message:$('fun-msg').value.trim()}});toast(d.delivered?'Эффект отправлен':'Пользователь не онлайн')}catch(e){toast(e.message)}finally{busy(b,false)}};
+$('f-sound').onsubmit=async e=>{e.preventDefault();var b=e.submitter||$('f-sound').querySelector('button[type="submit"]');busy(b,true,'Включаю...');try{var fd=new FormData();fd.append('username',$('snd-u').value.trim());fd.append('sound_url',$('snd-url').value.trim());fd.append('volume',String(Number($('snd-vol').value||100)/100));if($('snd-file').files[0])fd.append('sound',$('snd-file').files[0]);var d=await api('/api/admin/sound',{method:'POST',body:fd});toast(d.delivered?'Звук отправлен':'Пользователь не онлайн');$('snd-file').value=''}catch(e){toast(e.message)}finally{busy(b,false)}};
 
 // VOICE CALLS (WebRTC)
 async function startCall(targetId,name,avatar){
