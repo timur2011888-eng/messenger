@@ -174,6 +174,18 @@ function cleanImageSource(value) {
   return '';
 }
 
+function cleanHttpUrl(value) {
+  const source = clean(value, 2000);
+  if (!source) return '';
+
+  try {
+    const parsed = new URL(source);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+  } catch {}
+
+  return '';
+}
+
 function isAdminUser(user) {
   return Boolean(user && (user.username === ADMIN_USERNAME || Number(user.is_admin)));
 }
@@ -204,6 +216,8 @@ function publicUser(user) {
     profile_music_url: user.profile_music_url || '',
     profile_music_cover: user.profile_music_cover || '',
     profile_music_artist: user.profile_music_artist || '',
+    profile_social_icon: user.profile_social_icon || '',
+    profile_social_url: user.profile_social_url || '',
     is_admin: isAdminUser(user),
     is_owner_admin: isOwnerUser(user),
     is_anon_plus: Boolean(Number(user.is_anon_plus) || isAdminUser(user)),
@@ -239,7 +253,7 @@ async function getUserById(id) {
     'SELECT id, username, display_name, bio, avatar, status, profile_emoji,',
     'theme, accent, wallpaper, bubble_style, doxiki_balance, is_admin, is_anon_plus,',
     'admin_permissions, profile_bg_color, profile_bg_image, profile_bg_emoji, profile_music_title, profile_music_url,',
-    'profile_music_cover, profile_music_artist, created_at',
+    'profile_music_cover, profile_music_artist, profile_social_icon, profile_social_url, created_at',
     'FROM users WHERE id = ?'
   ].join(' ')).get(id);
 }
@@ -463,13 +477,20 @@ function nftItem(row) {
 }
 
 async function profileNfts(userId) {
-  return (await db.prepare([
+  const rows = (await db.prepare([
     'SELECT id, type, title, image, price, owner_id, profile_visible,',
     'total_supply, sold_count, template_id, listed_price, listed_at, created_at, purchased_at',
     'FROM nft_items',
     'WHERE owner_id = ? AND profile_visible = 1',
     "ORDER BY CASE type WHEN 'username' THEN 1 WHEN 'number' THEN 2 WHEN 'gift' THEN 3 ELSE 4 END, COALESCE(purchased_at, created_at) DESC"
   ].join(' ')).all(userId)).map(nftItem);
+  let hasNumber = false;
+  return rows.filter((item) => {
+    if (!item || item.type !== 'number') return true;
+    if (hasNumber) return false;
+    hasNumber = true;
+    return true;
+  });
 }
 
 function parseDoxikiAmount(value, allowZero = false) {
@@ -569,20 +590,21 @@ app.put('/api/profile', auth, async (req, res) => {
     profile_music_title: hasPlus ? clean(req.body.profile_music_title ?? current.profile_music_title, 80) : (current.profile_music_title || ''),
     profile_music_url: hasPlus ? clean(req.body.profile_music_url ?? current.profile_music_url, 500) : (current.profile_music_url || ''),
     profile_music_cover: hasPlus ? clean(req.body.profile_music_cover ?? current.profile_music_cover, 500) : (current.profile_music_cover || ''),
-    profile_music_artist: hasPlus ? clean(req.body.profile_music_artist ?? current.profile_music_artist, 80) : (current.profile_music_artist || '')
+    profile_music_artist: hasPlus ? clean(req.body.profile_music_artist ?? current.profile_music_artist, 80) : (current.profile_music_artist || ''),
+    profile_social_url: hasPlus ? cleanHttpUrl(req.body.profile_social_url ?? current.profile_social_url) : (current.profile_social_url || '')
   };
 
   await db.prepare([
     'UPDATE users SET display_name = ?, bio = ?, status = ?, profile_emoji = ?,',
     'theme = ?, accent = ?, wallpaper = ?, bubble_style = ?,',
     'profile_bg_color = ?, profile_bg_image = ?, profile_bg_emoji = ?, profile_music_title = ?, profile_music_url = ?,',
-    'profile_music_cover = ?, profile_music_artist = ?',
+    'profile_music_cover = ?, profile_music_artist = ?, profile_social_url = ?',
     'WHERE id = ?'
   ].join(' ')).run(
     next.display_name, next.bio, next.status, next.profile_emoji,
     next.theme, next.accent, next.wallpaper, next.bubble_style,
     next.profile_bg_color, next.profile_bg_image, next.profile_bg_emoji, next.profile_music_title, next.profile_music_url,
-    next.profile_music_cover, next.profile_music_artist, req.user.id
+    next.profile_music_cover, next.profile_music_artist, next.profile_social_url, req.user.id
   );
 
   res.json({ ok: true, user: publicUser(await getUserById(req.user.id)) });
@@ -633,6 +655,22 @@ app.post('/api/profile/background', auth, upload.single('background'), async (re
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Не удалось загрузить фон профиля' });
+  }
+});
+
+app.post('/api/profile/social-icon', auth, upload.single('icon'), async (req, res) => {
+  const user = await getUserById(req.user.id);
+  if (!user || !(Number(user.is_anon_plus) || isAdminUser(user))) {
+    return res.status(403).json({ error: 'Соц-иконка в профиле доступна только ANON+' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'Выбери изображение иконки' });
+  try {
+    const iconUrl = await uploadToSupabase(req.file, 'profile-social-icons');
+    await db.prepare('UPDATE users SET profile_social_icon = ? WHERE id = ?').run(iconUrl, req.user.id);
+    res.json({ icon: iconUrl, user: publicUser(await getUserById(req.user.id)) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Не удалось загрузить соц-иконку' });
   }
 });
 
@@ -811,7 +849,13 @@ app.put('/api/profile/nfts/:itemId', auth, async (req, res) => {
 
   if (!item) return res.status(404).json({ error: 'NFT в твоей коллекции не найден' });
 
-  await db.prepare('UPDATE nft_items SET profile_visible = ? WHERE id = ? AND owner_id = ?').run(visible, itemId, req.user.id);
+  const updateProfileNft = db.transaction(async () => {
+    if (visible && item.type === 'number') {
+      await db.prepare("UPDATE nft_items SET profile_visible = 0 WHERE owner_id = ? AND type = 'number' AND id <> ?").run(req.user.id, itemId);
+    }
+    await db.prepare('UPDATE nft_items SET profile_visible = ? WHERE id = ? AND owner_id = ?').run(visible, itemId, req.user.id);
+  });
+  await updateProfileNft();
   res.json({
     ok: true,
     item: nftItem({ ...item, profile_visible: visible }),

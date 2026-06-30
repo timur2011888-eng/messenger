@@ -191,12 +191,20 @@ textarea{min-height:80px;resize:vertical}
 .pv-av img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
 .pv-name{font-size:20px;font-weight:700;margin-bottom:3px}
 .pv-user{color:var(--muted);font-size:14px;margin-bottom:2px}
-.pv-also{display:flex;flex-wrap:wrap;gap:3px 6px;justify-content:center;margin-bottom:4px}
-.pv-also span{font-size:13px;color:var(--accent);opacity:.8}
+.pv-usernames{display:grid;gap:2px;max-width:min(430px,100%);margin:2px auto 7px;text-align:left;line-height:1.35}
+.pv-main-user{color:var(--accent);font-size:14px;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.pv-also{display:block;max-width:100%;font-size:13px;color:var(--accent);overflow-wrap:anywhere}
+.pv-also-prefix{color:var(--muted)}
+.pv-nft-user{color:var(--accent)}
 .pv-on{font-size:13px;margin-bottom:12px}
 .pv-on.yes{color:var(--good)}
 .pv-on.no{color:var(--muted)}
 .pv-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:linear-gradient(135deg,#6c5ce7,#a855f7);color:#fff;font-size:11px;font-weight:700;margin-bottom:10px}
+.pv-social{width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.13);display:grid;place-items:center;margin:-2px auto 10px;overflow:hidden;transition:transform .12s,background .12s}
+.pv-social:hover{transform:translateY(-1px);background:rgba(255,255,255,.22)}
+.pv-social img{width:100%;height:100%;object-fit:cover}
+.soc-preview{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;overflow:hidden;color:var(--accent);font-weight:800;flex:0 0 auto}
+.soc-preview img{width:100%;height:100%;object-fit:cover}
 .pv-acts{display:flex;gap:20px;justify-content:center;margin-bottom:4px}
 .pv-act{display:flex;flex-direction:column;align-items:center;gap:5px;border:0;background:0;color:var(--muted);cursor:pointer;padding:6px;border-radius:10px;min-width:56px;transition:background .12s}
 .pv-act:hover{background:rgba(51,144,236,.1);color:var(--txt)}
@@ -1366,10 +1374,27 @@ function renderPV(box,data,isSelf){
   nm.textContent=(u.profile_emoji?u.profile_emoji+' ':'')+(u.display_name||u.username||'Аноним');
   card.appendChild(nm);
 
-  // Username
-  var un=document.createElement('div');un.className='pv-user';
-  un.textContent=u.username?'@'+u.username:'';
-  card.appendChild(un);
+  var nftU=nfts.filter(n=>n.type==='username');
+  var nftN=nfts.filter(n=>n.type==='number');
+
+  // Username + NFT usernames
+  var users=document.createElement('div');users.className='pv-usernames';
+  if(u.username){
+    var un=document.createElement('div');un.className='pv-main-user';
+    un.textContent='@'+u.username;
+    users.appendChild(un);
+  }
+  if(nftU.length){
+    var also=document.createElement('div');also.className='pv-also';
+    var al=document.createElement('span');al.className='pv-also-prefix';al.textContent='also ';also.appendChild(al);
+    nftU.forEach((n,i)=>{
+      var s=document.createElement('span');s.className='pv-nft-user';
+      s.textContent=(n.title.startsWith('@')?n.title:'@'+n.title)+(i<nftU.length-1?', ':'');
+      also.appendChild(s);
+    });
+    users.appendChild(also);
+  }
+  if(users.childNodes.length)card.appendChild(users);
 
   // ANON+ badge
   if(u.is_anon_plus){
@@ -1377,14 +1402,11 @@ function renderPV(box,data,isSelf){
     card.appendChild(badge);
   }
 
-  // NFT usernames
-  var nftU=nfts.filter(n=>n.type==='username');
-  var nftN=nfts.filter(n=>n.type==='number');
-  if(nftU.length){
-    var also=document.createElement('div');also.className='pv-also';
-    var al=document.createElement('span');al.textContent='also';al.style.color='var(--muted)';also.appendChild(al);
-    nftU.forEach(n=>{var s=document.createElement('span');s.textContent=n.title.startsWith('@')?n.title:'@'+n.title;also.appendChild(s)});
-    card.appendChild(also);
+  if(u.is_anon_plus&&u.profile_social_url){
+    var soc=document.createElement('a');soc.className='pv-social';soc.href=u.profile_social_url;soc.target='_blank';soc.rel='noopener noreferrer';soc.title='Соцсеть';
+    if(u.profile_social_icon){var si=document.createElement('img');si.src=u.profile_social_icon;soc.appendChild(si)}
+    else soc.textContent='↗';
+    card.appendChild(soc);
   }
 
   // Online
@@ -1463,17 +1485,57 @@ function mkAct(icon,label,fn){
   b.append(i,l);b.onclick=fn;return b;
 }
 
+function socialIconPreview(){
+  var box=$('e-social-prev');
+  if(!box)return;
+  box.innerHTML='';
+  if(M&&M.profile_social_icon){
+    var img=document.createElement('img');img.src=M.profile_social_icon;box.appendChild(img);
+  }else box.textContent='↗';
+}
+
+function ensureSocialEdit(){
+  if($('e-social-url'))return;
+  var host=$('plus-section');if(!host)return;
+  var title=document.createElement('h3');
+  title.style.cssText='font-size:14px;color:var(--muted);margin:16px 0 10px';
+  title.textContent='Соцсети';
+  var wrap=document.createElement('div');wrap.className='stack';
+  var lab=document.createElement('label');lab.className='fld';
+  var sp=document.createElement('span');sp.textContent='Ссылка';
+  var inp=document.createElement('input');inp.id='e-social-url';inp.maxLength=2000;inp.placeholder='https://...';
+  lab.append(sp,inp);
+  var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+  var prev=document.createElement('span');prev.id='e-social-prev';prev.className='soc-preview';prev.textContent='↗';
+  var file=document.createElement('input');file.id='e-social-file';file.type='file';file.accept='image/*';file.hidden=true;
+  var btn=document.createElement('button');btn.className='btn btn-s';btn.type='button';btn.id='e-social-btn';btn.style.fontSize='13px';btn.textContent='Иконка';
+  btn.onclick=()=>file.click();
+  file.onchange=async()=>{
+    var f=file.files[0];if(!f)return;
+    var fd=new FormData();fd.append('icon',f);
+    try{var d=await api('/api/profile/social-icon',{method:'POST',body:fd});M=d.user;localStorage.setItem('a:m',JSON.stringify(M));socialIconPreview();toast('Иконка обновлена')}catch(e){toast(e.message)}
+  };
+  row.append(prev,file,btn);wrap.append(lab,row);
+  var before=host.querySelector('[data-theme]');
+  if(before&&before.parentElement)host.insertBefore(wrap,before.parentElement.previousElementSibling||before.parentElement);
+  host.append(title,wrap);
+}
+
 // PROFILE EDIT
 function openEdit(){
   if(!M)return;
   var plus=M.is_anon_plus||M.is_admin;
   $('plus-section').hidden=!plus;
+  ensureSocialEdit();
   $('e-dn').value=M.display_name||'';
   $('e-st').value=M.status||'';
   $('e-em').value=M.profile_emoji||'';
   $('e-bio').value=M.bio||'';
   $('e-bgc').value=M.profile_bg_color||'#20242b';
   $('e-bge').value=M.profile_bg_emoji||'';
+  if($('e-social-url'))$('e-social-url').value=M.profile_social_url||'';
+  if($('e-social-file'))$('e-social-file').value='';
+  socialIconPreview();
   $('e-bgimg').value='';$('e-avf').value='';
   $('e-cp').value='';$('e-np').value='';
   rav($('e-av'),M.avatar,M.display_name||M.username);
@@ -1505,7 +1567,8 @@ $('e-save').onclick=async()=>{
       display_name:$('e-dn').value.trim(),status:$('e-st').value.trim(),
       profile_emoji:$('e-em').value.trim(),bio:$('e-bio').value.trim(),
       theme:PD.theme,accent:PD.accent,
-      profile_bg_color:$('e-bgc').value,profile_bg_emoji:$('e-bge').value.trim()
+      profile_bg_color:$('e-bgc').value,profile_bg_emoji:$('e-bge').value.trim(),
+      profile_social_url:$('e-social-url')?$('e-social-url').value.trim():''
     }});
     M=d.user;
     if($('e-bgimg').files[0]){var bd=await api('/api/profile/background',{method:'POST',body:(()=>{var fd=new FormData();fd.append('background',$('e-bgimg').files[0]);return fd})()});M=bd.user}
@@ -1690,7 +1753,8 @@ function renderNL(id,items,owned,mode){
     }else{
       var tg=document.createElement('button');tg.className='btn '+(it.profile_visible?'btn-s':'btn-p');
       tg.style.cssText='width:100%;font-size:13px;min-height:38px';
-      tg.textContent=it.profile_visible?'Убрать из профиля':'В профиль';
+      var hasNumber=items.some(x=>x.type==='number'&&x.profile_visible&&x.id!==it.id);
+      tg.textContent=it.profile_visible?'Убрать из профиля':(it.type==='number'&&hasNumber?'Заменить номер':'В профиль');
       tg.onclick=()=>toggleNft(it);c.appendChild(tg);
       var sell=document.createElement('button');sell.className='btn btn-s';sell.style.cssText='width:100%;font-size:13px;min-height:38px';
       sell.textContent=it.listed_price>0?'Снять с биржи':'На биржу';
