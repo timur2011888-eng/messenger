@@ -191,8 +191,8 @@ textarea{min-height:80px;resize:vertical}
 .pv-av img{display:block;width:100%;height:100%;object-fit:cover;object-position:center}
 .pv-name{font-size:20px;font-weight:700;margin-bottom:3px}
 .pv-user{color:var(--muted);font-size:14px;margin-bottom:2px}
-.pv-usernames{display:grid;gap:2px;max-width:min(430px,100%);margin:2px auto 7px;text-align:left;line-height:1.35}
-.pv-main-user{color:var(--accent);font-size:14px;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.pv-usernames{display:grid;gap:2px;line-height:1.35}
+.pv-main-user{color:var(--accent);font-size:14px;overflow-wrap:anywhere}
 .pv-also{display:block;max-width:100%;font-size:13px;color:var(--accent);overflow-wrap:anywhere}
 .pv-also-prefix{color:var(--muted)}
 .pv-nft-user{color:var(--accent)}
@@ -200,7 +200,8 @@ textarea{min-height:80px;resize:vertical}
 .pv-on.yes{color:var(--good)}
 .pv-on.no{color:var(--muted)}
 .pv-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;background:linear-gradient(135deg,#6c5ce7,#a855f7);color:#fff;font-size:11px;font-weight:700;margin-bottom:10px}
-.pv-social{width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.13);display:grid;place-items:center;margin:-2px auto 10px;overflow:hidden;transition:transform .12s,background .12s}
+.pv-socials{display:flex;gap:8px;justify-content:center;margin:-2px auto 10px}
+.pv-social{width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.13);display:grid;place-items:center;overflow:hidden;transition:transform .12s,background .12s}
 .pv-social:hover{transform:translateY(-1px);background:rgba(255,255,255,.22)}
 .pv-social img{width:100%;height:100%;object-fit:cover}
 .soc-preview{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);display:grid;place-items:center;overflow:hidden;color:var(--accent);font-weight:800;flex:0 0 auto}
@@ -1377,24 +1378,11 @@ function renderPV(box,data,isSelf){
   var nftU=nfts.filter(n=>n.type==='username');
   var nftN=nfts.filter(n=>n.type==='number');
 
-  // Username + NFT usernames
-  var users=document.createElement('div');users.className='pv-usernames';
   if(u.username){
-    var un=document.createElement('div');un.className='pv-main-user';
-    un.textContent='@'+u.username;
-    users.appendChild(un);
+    var unTop=document.createElement('div');unTop.className='pv-user';
+    unTop.textContent='@'+u.username;
+    card.appendChild(unTop);
   }
-  if(nftU.length){
-    var also=document.createElement('div');also.className='pv-also';
-    var al=document.createElement('span');al.className='pv-also-prefix';al.textContent='also ';also.appendChild(al);
-    nftU.forEach((n,i)=>{
-      var s=document.createElement('span');s.className='pv-nft-user';
-      s.textContent=(n.title.startsWith('@')?n.title:'@'+n.title)+(i<nftU.length-1?', ':'');
-      also.appendChild(s);
-    });
-    users.appendChild(also);
-  }
-  if(users.childNodes.length)card.appendChild(users);
 
   // ANON+ badge
   if(u.is_anon_plus){
@@ -1402,11 +1390,20 @@ function renderPV(box,data,isSelf){
     card.appendChild(badge);
   }
 
-  if(u.is_anon_plus&&u.profile_social_url){
-    var soc=document.createElement('a');soc.className='pv-social';soc.href=u.profile_social_url;soc.target='_blank';soc.rel='noopener noreferrer';soc.title='Соцсеть';
-    if(u.profile_social_icon){var si=document.createElement('img');si.src=u.profile_social_icon;soc.appendChild(si)}
-    else soc.textContent='↗';
-    card.appendChild(soc);
+  var socialLinks=[
+    {url:u.profile_social_url,icon:u.profile_social_icon},
+    {url:u.profile_social_url_2,icon:u.profile_social_icon_2},
+    {url:u.profile_social_url_3,icon:u.profile_social_icon_3}
+  ].filter(x=>x.url);
+  if(u.is_anon_plus&&socialLinks.length){
+    var socials=document.createElement('div');socials.className='pv-socials';
+    socialLinks.forEach((x,i)=>{
+      var soc=document.createElement('a');soc.className='pv-social';soc.href=x.url;soc.target='_blank';soc.rel='noopener noreferrer';soc.title='Соцсеть '+(i+1);
+      if(x.icon){var si=document.createElement('img');si.src=x.icon;soc.appendChild(si)}
+      else soc.textContent='↗';
+      socials.appendChild(soc);
+    });
+    card.appendChild(socials);
   }
 
   // Online
@@ -1445,10 +1442,28 @@ function renderPV(box,data,isSelf){
   var info=document.createElement('div');info.className='pv-info';
 
   nftN.forEach(n=>{addRow(info,n.title,'NFT номер')});
-  if(u.username)addRow(info,'@'+u.username,'Юзернейм','var(--accent)');
-  nftU.forEach(n=>{addRow(info,n.title.startsWith('@')?n.title:'@'+n.title,'NFT юзернейм','var(--accent)')});
   if(u.bio)addRow(info,u.bio,'О себе');
   if(u.status)addRow(info,u.status,'Статус');
+  if(u.username||nftU.length){
+    var userRow=document.createElement('div');userRow.className='pv-row';
+    var userBox=document.createElement('div');userBox.className='pv-usernames';
+    if(u.username){
+      var mainUser=document.createElement('div');mainUser.className='pv-main-user';mainUser.textContent='@'+u.username;
+      userBox.appendChild(mainUser);
+    }
+    if(nftU.length){
+      var also=document.createElement('div');also.className='pv-also';
+      var al=document.createElement('span');al.className='pv-also-prefix';al.textContent='also ';also.appendChild(al);
+      nftU.forEach((n,i)=>{
+        var s=document.createElement('span');s.className='pv-nft-user';
+        s.textContent=(n.title.startsWith('@')?n.title:'@'+n.title)+(i<nftU.length-1?', ':'');
+        also.appendChild(s);
+      });
+      userBox.appendChild(also);
+    }
+    var userLbl=document.createElement('div');userLbl.className='pv-lbl';userLbl.textContent='Юзернеймы';
+    userRow.append(userBox,userLbl);info.appendChild(userRow);
+  }
   addRow(info,u.created_at?fDate(u.created_at):'—','Регистрация');
 
   box.appendChild(info);
@@ -1485,37 +1500,42 @@ function mkAct(icon,label,fn){
   b.append(i,l);b.onclick=fn;return b;
 }
 
-function socialIconPreview(){
-  var box=$('e-social-prev');
+function socialIconPreview(slot){
+  slot=slot||1;
+  var box=$('e-social-prev-'+slot);
   if(!box)return;
   box.innerHTML='';
-  if(M&&M.profile_social_icon){
-    var img=document.createElement('img');img.src=M.profile_social_icon;box.appendChild(img);
+  var key=slot===1?'profile_social_icon':'profile_social_icon_'+slot;
+  if(M&&M[key]){
+    var img=document.createElement('img');img.src=M[key];box.appendChild(img);
   }else box.textContent='↗';
 }
 
 function ensureSocialEdit(){
-  if($('e-social-url'))return;
+  if($('e-social-url-1'))return;
   var host=$('plus-section');if(!host)return;
   var title=document.createElement('h3');
   title.style.cssText='font-size:14px;color:var(--muted);margin:16px 0 10px';
   title.textContent='Соцсети';
   var wrap=document.createElement('div');wrap.className='stack';
-  var lab=document.createElement('label');lab.className='fld';
-  var sp=document.createElement('span');sp.textContent='Ссылка';
-  var inp=document.createElement('input');inp.id='e-social-url';inp.maxLength=2000;inp.placeholder='https://...';
-  lab.append(sp,inp);
-  var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap';
-  var prev=document.createElement('span');prev.id='e-social-prev';prev.className='soc-preview';prev.textContent='↗';
-  var file=document.createElement('input');file.id='e-social-file';file.type='file';file.accept='image/*';file.hidden=true;
-  var btn=document.createElement('button');btn.className='btn btn-s';btn.type='button';btn.id='e-social-btn';btn.style.fontSize='13px';btn.textContent='Иконка';
-  btn.onclick=()=>file.click();
-  file.onchange=async()=>{
-    var f=file.files[0];if(!f)return;
-    var fd=new FormData();fd.append('icon',f);
-    try{var d=await api('/api/profile/social-icon',{method:'POST',body:fd});M=d.user;localStorage.setItem('a:m',JSON.stringify(M));socialIconPreview();toast('Иконка обновлена')}catch(e){toast(e.message)}
-  };
-  row.append(prev,file,btn);wrap.append(lab,row);
+  for(let slot=1;slot<=3;slot++){
+    var group=document.createElement('div');group.className='stack';group.style.gap='8px';
+    var lab=document.createElement('label');lab.className='fld';
+    var sp=document.createElement('span');sp.textContent='Ссылка '+slot;
+    var inp=document.createElement('input');inp.id='e-social-url-'+slot;inp.maxLength=2000;inp.placeholder='https://...';
+    lab.append(sp,inp);
+    var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+    var prev=document.createElement('span');prev.id='e-social-prev-'+slot;prev.className='soc-preview';prev.textContent='↗';
+    var file=document.createElement('input');file.id='e-social-file-'+slot;file.type='file';file.accept='image/*';file.hidden=true;
+    var btn=document.createElement('button');btn.className='btn btn-s';btn.type='button';btn.id='e-social-btn-'+slot;btn.style.fontSize='13px';btn.textContent='Иконка '+slot;
+    btn.onclick=()=>file.click();
+    file.onchange=async()=>{
+      var f=file.files[0];if(!f)return;
+      var fd=new FormData();fd.append('icon',f);fd.append('slot',String(slot));
+      try{var d=await api('/api/profile/social-icon',{method:'POST',body:fd});M=d.user;localStorage.setItem('a:m',JSON.stringify(M));socialIconPreview(slot);toast('Иконка обновлена')}catch(e){toast(e.message)}
+    };
+    row.append(prev,file,btn);group.append(lab,row);wrap.appendChild(group);
+  }
   var before=host.querySelector('[data-theme]');
   if(before&&before.parentElement)host.insertBefore(wrap,before.parentElement.previousElementSibling||before.parentElement);
   host.append(title,wrap);
@@ -1533,9 +1553,12 @@ function openEdit(){
   $('e-bio').value=M.bio||'';
   $('e-bgc').value=M.profile_bg_color||'#20242b';
   $('e-bge').value=M.profile_bg_emoji||'';
-  if($('e-social-url'))$('e-social-url').value=M.profile_social_url||'';
-  if($('e-social-file'))$('e-social-file').value='';
-  socialIconPreview();
+  for(var si=1;si<=3;si++){
+    var urlKey=si===1?'profile_social_url':'profile_social_url_'+si;
+    if($('e-social-url-'+si))$('e-social-url-'+si).value=M[urlKey]||'';
+    if($('e-social-file-'+si))$('e-social-file-'+si).value='';
+    socialIconPreview(si);
+  }
   $('e-bgimg').value='';$('e-avf').value='';
   $('e-cp').value='';$('e-np').value='';
   rav($('e-av'),M.avatar,M.display_name||M.username);
@@ -1568,7 +1591,9 @@ $('e-save').onclick=async()=>{
       profile_emoji:$('e-em').value.trim(),bio:$('e-bio').value.trim(),
       theme:PD.theme,accent:PD.accent,
       profile_bg_color:$('e-bgc').value,profile_bg_emoji:$('e-bge').value.trim(),
-      profile_social_url:$('e-social-url')?$('e-social-url').value.trim():''
+      profile_social_url:$('e-social-url-1')?$('e-social-url-1').value.trim():'',
+      profile_social_url_2:$('e-social-url-2')?$('e-social-url-2').value.trim():'',
+      profile_social_url_3:$('e-social-url-3')?$('e-social-url-3').value.trim():''
     }});
     M=d.user;
     if($('e-bgimg').files[0]){var bd=await api('/api/profile/background',{method:'POST',body:(()=>{var fd=new FormData();fd.append('background',$('e-bgimg').files[0]);return fd})()});M=bd.user}

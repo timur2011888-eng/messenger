@@ -218,6 +218,10 @@ function publicUser(user) {
     profile_music_artist: user.profile_music_artist || '',
     profile_social_icon: user.profile_social_icon || '',
     profile_social_url: user.profile_social_url || '',
+    profile_social_icon_2: user.profile_social_icon_2 || '',
+    profile_social_url_2: user.profile_social_url_2 || '',
+    profile_social_icon_3: user.profile_social_icon_3 || '',
+    profile_social_url_3: user.profile_social_url_3 || '',
     is_admin: isAdminUser(user),
     is_owner_admin: isOwnerUser(user),
     is_anon_plus: Boolean(Number(user.is_anon_plus) || isAdminUser(user)),
@@ -253,7 +257,8 @@ async function getUserById(id) {
     'SELECT id, username, display_name, bio, avatar, status, profile_emoji,',
     'theme, accent, wallpaper, bubble_style, doxiki_balance, is_admin, is_anon_plus,',
     'admin_permissions, profile_bg_color, profile_bg_image, profile_bg_emoji, profile_music_title, profile_music_url,',
-    'profile_music_cover, profile_music_artist, profile_social_icon, profile_social_url, created_at',
+    'profile_music_cover, profile_music_artist, profile_social_icon, profile_social_url,',
+    'profile_social_icon_2, profile_social_url_2, profile_social_icon_3, profile_social_url_3, created_at',
     'FROM users WHERE id = ?'
   ].join(' ')).get(id);
 }
@@ -591,20 +596,22 @@ app.put('/api/profile', auth, async (req, res) => {
     profile_music_url: hasPlus ? clean(req.body.profile_music_url ?? current.profile_music_url, 500) : (current.profile_music_url || ''),
     profile_music_cover: hasPlus ? clean(req.body.profile_music_cover ?? current.profile_music_cover, 500) : (current.profile_music_cover || ''),
     profile_music_artist: hasPlus ? clean(req.body.profile_music_artist ?? current.profile_music_artist, 80) : (current.profile_music_artist || ''),
-    profile_social_url: hasPlus ? cleanHttpUrl(req.body.profile_social_url ?? current.profile_social_url) : (current.profile_social_url || '')
+    profile_social_url: hasPlus ? cleanHttpUrl(req.body.profile_social_url ?? current.profile_social_url) : (current.profile_social_url || ''),
+    profile_social_url_2: hasPlus ? cleanHttpUrl(req.body.profile_social_url_2 ?? current.profile_social_url_2) : (current.profile_social_url_2 || ''),
+    profile_social_url_3: hasPlus ? cleanHttpUrl(req.body.profile_social_url_3 ?? current.profile_social_url_3) : (current.profile_social_url_3 || '')
   };
 
   await db.prepare([
     'UPDATE users SET display_name = ?, bio = ?, status = ?, profile_emoji = ?,',
     'theme = ?, accent = ?, wallpaper = ?, bubble_style = ?,',
     'profile_bg_color = ?, profile_bg_image = ?, profile_bg_emoji = ?, profile_music_title = ?, profile_music_url = ?,',
-    'profile_music_cover = ?, profile_music_artist = ?, profile_social_url = ?',
+    'profile_music_cover = ?, profile_music_artist = ?, profile_social_url = ?, profile_social_url_2 = ?, profile_social_url_3 = ?',
     'WHERE id = ?'
   ].join(' ')).run(
     next.display_name, next.bio, next.status, next.profile_emoji,
     next.theme, next.accent, next.wallpaper, next.bubble_style,
     next.profile_bg_color, next.profile_bg_image, next.profile_bg_emoji, next.profile_music_title, next.profile_music_url,
-    next.profile_music_cover, next.profile_music_artist, next.profile_social_url, req.user.id
+    next.profile_music_cover, next.profile_music_artist, next.profile_social_url, next.profile_social_url_2, next.profile_social_url_3, req.user.id
   );
 
   res.json({ ok: true, user: publicUser(await getUserById(req.user.id)) });
@@ -665,9 +672,11 @@ app.post('/api/profile/social-icon', auth, upload.single('icon'), async (req, re
   }
   if (!req.file) return res.status(400).json({ error: 'Выбери изображение иконки' });
   try {
+    const slot = Math.max(1, Math.min(3, Number(req.body.slot || 1)));
+    const column = slot === 1 ? 'profile_social_icon' : 'profile_social_icon_' + slot;
     const iconUrl = await uploadToSupabase(req.file, 'profile-social-icons');
-    await db.prepare('UPDATE users SET profile_social_icon = ? WHERE id = ?').run(iconUrl, req.user.id);
-    res.json({ icon: iconUrl, user: publicUser(await getUserById(req.user.id)) });
+    await db.prepare('UPDATE users SET ' + column + ' = ? WHERE id = ?').run(iconUrl, req.user.id);
+    res.json({ icon: iconUrl, slot, user: publicUser(await getUserById(req.user.id)) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Не удалось загрузить соц-иконку' });

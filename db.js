@@ -45,6 +45,10 @@ function sqliteSchema() {
     "  profile_music_artist TEXT DEFAULT '',",
     "  profile_social_icon TEXT DEFAULT '',",
     "  profile_social_url TEXT DEFAULT '',",
+    "  profile_social_icon_2 TEXT DEFAULT '',",
+    "  profile_social_url_2 TEXT DEFAULT '',",
+    "  profile_social_icon_3 TEXT DEFAULT '',",
+    "  profile_social_url_3 TEXT DEFAULT '',",
     '  created_at ' + sqliteNowDefault(),
     ');',
     '',
@@ -202,6 +206,10 @@ function postgresStatements() {
       "  profile_music_artist TEXT DEFAULT '',",
       "  profile_social_icon TEXT DEFAULT '',",
       "  profile_social_url TEXT DEFAULT '',",
+      "  profile_social_icon_2 TEXT DEFAULT '',",
+      "  profile_social_url_2 TEXT DEFAULT '',",
+      "  profile_social_icon_3 TEXT DEFAULT '',",
+      "  profile_social_url_3 TEXT DEFAULT '',",
       '  created_at ' + pgNowDefault(),
       ')'
     ].join('\n'),
@@ -359,7 +367,11 @@ const columns = {
     ['profile_music_cover', "profile_music_cover TEXT DEFAULT ''"],
     ['profile_music_artist', "profile_music_artist TEXT DEFAULT ''"],
     ['profile_social_icon', "profile_social_icon TEXT DEFAULT ''"],
-    ['profile_social_url', "profile_social_url TEXT DEFAULT ''"]
+    ['profile_social_url', "profile_social_url TEXT DEFAULT ''"],
+    ['profile_social_icon_2', "profile_social_icon_2 TEXT DEFAULT ''"],
+    ['profile_social_url_2', "profile_social_url_2 TEXT DEFAULT ''"],
+    ['profile_social_icon_3', "profile_social_icon_3 TEXT DEFAULT ''"],
+    ['profile_social_url_3', "profile_social_url_3 TEXT DEFAULT ''"]
   ],
   messages: [
     ['iv', 'iv TEXT'],
