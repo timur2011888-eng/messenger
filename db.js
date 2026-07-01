@@ -175,6 +175,24 @@ function sqliteSchema() {
     '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
     ');',
     '',
+    'CREATE TABLE IF NOT EXISTS promo_codes (',
+    '  id TEXT PRIMARY KEY,',
+    '  code TEXT UNIQUE NOT NULL,',
+    '  reward INTEGER NOT NULL,',
+    '  created_by TEXT,',
+    '  created_at ' + sqliteNowDefault() + ',',
+    '  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL',
+    ');',
+    '',
+    'CREATE TABLE IF NOT EXISTS promo_code_redemptions (',
+    '  promo_id TEXT NOT NULL,',
+    '  user_id TEXT NOT NULL,',
+    '  created_at ' + sqliteNowDefault() + ',',
+    '  PRIMARY KEY (promo_id, user_id),',
+    '  FOREIGN KEY (promo_id) REFERENCES promo_codes(id) ON DELETE CASCADE,',
+    '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+    ');',
+    '',
     'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at);',
     'CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);',
     'CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id);',
@@ -183,7 +201,9 @@ function sqliteSchema() {
     'CREATE INDEX IF NOT EXISTS idx_music_library_time ON music_library(created_at);',
     'CREATE INDEX IF NOT EXISTS idx_nft_market ON nft_items(owner_id, type, created_at);',
     'CREATE INDEX IF NOT EXISTS idx_economy_log_time ON economy_log(created_at);',
-    'CREATE INDEX IF NOT EXISTS idx_daily_wheel_user_day ON daily_wheel_claims(user_id, day_key);'
+    'CREATE INDEX IF NOT EXISTS idx_daily_wheel_user_day ON daily_wheel_claims(user_id, day_key);',
+    'CREATE INDEX IF NOT EXISTS idx_promo_codes_created ON promo_codes(created_at);',
+    'CREATE INDEX IF NOT EXISTS idx_promo_redemptions_user ON promo_code_redemptions(user_id);'
   ].join('\n');
 }
 
@@ -357,6 +377,26 @@ function postgresStatements() {
       '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
       ')'
     ].join('\n'),
+    [
+      'CREATE TABLE IF NOT EXISTS promo_codes (',
+      '  id TEXT PRIMARY KEY,',
+      '  code TEXT UNIQUE NOT NULL,',
+      '  reward BIGINT NOT NULL,',
+      '  created_by TEXT,',
+      '  created_at ' + pgNowDefault() + ',',
+      '  FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL',
+      ')'
+    ].join('\n'),
+    [
+      'CREATE TABLE IF NOT EXISTS promo_code_redemptions (',
+      '  promo_id TEXT NOT NULL,',
+      '  user_id TEXT NOT NULL,',
+      '  created_at ' + pgNowDefault() + ',',
+      '  PRIMARY KEY (promo_id, user_id),',
+      '  FOREIGN KEY (promo_id) REFERENCES promo_codes(id) ON DELETE CASCADE,',
+      '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+      ')'
+    ].join('\n'),
     'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at)',
     'CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id)',
     'CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id)',
@@ -365,7 +405,9 @@ function postgresStatements() {
     'CREATE INDEX IF NOT EXISTS idx_music_library_time ON music_library(created_at)',
     'CREATE INDEX IF NOT EXISTS idx_nft_market ON nft_items(owner_id, type, created_at)',
     'CREATE INDEX IF NOT EXISTS idx_economy_log_time ON economy_log(created_at)',
-    'CREATE INDEX IF NOT EXISTS idx_daily_wheel_user_day ON daily_wheel_claims(user_id, day_key)'
+    'CREATE INDEX IF NOT EXISTS idx_daily_wheel_user_day ON daily_wheel_claims(user_id, day_key)',
+    'CREATE INDEX IF NOT EXISTS idx_promo_codes_created ON promo_codes(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_promo_redemptions_user ON promo_code_redemptions(user_id)'
   ];
 }
 

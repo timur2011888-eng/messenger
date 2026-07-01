@@ -145,8 +145,8 @@ const activeCalls = new Map();
 const activeScreenShares = new Map();
 const SCREEN_SHARE_TTL_MS = 5 * 60 * 1000;
 const DAILY_WHEEL_REWARDS = [10, 20, 40, 80, 160];
-const LUCKY_JET_MAX_BET = 100000;
-const LUCKY_JET_MAX_MULTIPLIER = 3;
+const ROULETTE_MAX_BET = 500;
+const ROULETTE_RED_NUMBERS = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
 
 function normalizeUsername(value) {
   return String(value || '').trim().toLowerCase();
@@ -201,22 +201,59 @@ function randomDailyWheelReward() {
   return DAILY_WHEEL_REWARDS[randomInt(DAILY_WHEEL_REWARDS.length)];
 }
 
-function parseLuckyJetBet(value) {
+function parseRouletteBet(value) {
   const bet = Number(value);
-  if (!Number.isSafeInteger(bet) || bet < 1 || bet > LUCKY_JET_MAX_BET) return null;
+  if (!Number.isSafeInteger(bet) || bet < 1 || bet > ROULETTE_MAX_BET) return null;
   return bet;
 }
 
-function parseLuckyJetCashout(value) {
-  const raw = Number(value);
-  if (!Number.isFinite(raw) || raw < 1.01 || raw > LUCKY_JET_MAX_MULTIPLIER) return null;
-  return Math.floor(raw * 100) / 100;
+function normalizeRoulettePick(typeValue, pickValue) {
+  const type = clean(typeValue, 16);
+  if (type === 'number') {
+    const number = Number(pickValue);
+    if (!Number.isSafeInteger(number) || number < 0 || number > 36) return null;
+    return { type, value: number, label: 'число ' + number };
+  }
+
+  const labels = {
+    red: 'красное',
+    black: 'черное',
+    even: 'четное',
+    odd: 'нечетное',
+    low: '1-18',
+    high: '19-36',
+    dozen1: '1-12',
+    dozen2: '13-24',
+    dozen3: '25-36'
+  };
+  if (!labels[type]) return null;
+  return { type, value: '', label: labels[type] };
 }
 
-function luckyJetCrashMultiplier() {
-  const roll = randomInt(0, 10001) / 10000;
-  const crash = 1 + Math.pow(roll, 1.7) * (LUCKY_JET_MAX_MULTIPLIER - 1);
-  return Math.min(LUCKY_JET_MAX_MULTIPLIER, Math.max(1, Number(crash.toFixed(2))));
+function normalizePromoCode(value) {
+  return clean(value, 40).toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+}
+
+function rouletteOutcome() {
+  const number = randomInt(37);
+  const color = number === 0 ? 'green' : (ROULETTE_RED_NUMBERS.has(number) ? 'red' : 'black');
+  return { number, color };
+}
+
+function roulettePickWins(pick, outcome) {
+  const number = Number(outcome.number);
+  if (pick.type === 'number') return number === Number(pick.value);
+  if (number === 0) return false;
+  if (pick.type === 'red') return outcome.color === 'red';
+  if (pick.type === 'black') return outcome.color === 'black';
+  if (pick.type === 'even') return number % 2 === 0;
+  if (pick.type === 'odd') return number % 2 === 1;
+  if (pick.type === 'low') return number >= 1 && number <= 18;
+  if (pick.type === 'high') return number >= 19 && number <= 36;
+  if (pick.type === 'dozen1') return number >= 1 && number <= 12;
+  if (pick.type === 'dozen2') return number >= 13 && number <= 24;
+  if (pick.type === 'dozen3') return number >= 25 && number <= 36;
+  return false;
 }
 
 function isAdminUser(user) {
@@ -816,6 +853,81 @@ app.get('/api/marketplace', auth, async (req, res) => {
   });
 });
 
+app.get('/api/forbes', auth, async (_req, res) => {
+  const leaders = (await db.prepare([
+    'SELECT id, username, display_name, avatar, doxiki_balance',
+    'FROM users WHERE doxiki_balance > 0',
+    'ORDER BY doxiki_balance DESC, created_at ASC LIMIT 100'
+  ].join(' ')).all()).map((row, index) => ({
+    rank: index + 1,
+    id: row.id,
+    username: row.username,
+    display_name: row.display_name,
+    avatar: row.avatar || '',
+    doxiki_balance: Number(row.doxiki_balance || 0)
+  }));
+  res.json({ leaders });
+});
+
+app.get('/api/promocodes', auth, async (req, res) => {
+  const user = await getUserById(req.user.id);
+  if (!user) return res.status(404).json({ error: 'Профиль не найден' });
+  const rows = await db.prepare([
+    'SELECT p.id, p.code, p.reward, r.created_at',
+    'FROM promo_codes p',
+    'JOIN promo_code_redemptions r ON r.promo_id = p.id AND r.user_id = ?',
+    'ORDER BY r.created_at DESC LIMIT 100'
+  ].join(' ')).all(req.user.id);
+  res.json({
+    balance: Number(user.doxiki_balance || 0),
+    codes: rows.map((row) => ({
+      id: row.id,
+      code: row.code,
+      reward: Number(row.reward || 0),
+      created_at: row.created_at,
+      used_by_me: true
+    }))
+  });
+});
+
+app.post('/api/promocodes/redeem', auth, async (req, res) => {
+  const code = normalizePromoCode(req.body.code);
+  if (!code) return res.status(400).json({ error: 'Введи промокод' });
+
+  const redeem = db.transaction(async () => {
+    const user = await getUserById(req.user.id);
+    if (!user) failTransaction(404, 'Профиль не найден');
+    const promo = await db.prepare('SELECT id, code, reward FROM promo_codes WHERE code = ? LIMIT 1').get(code);
+    if (!promo) failTransaction(404, 'Промокод не найден');
+    const used = await db.prepare([
+      'SELECT 1 FROM promo_code_redemptions WHERE promo_id = ? AND user_id = ? LIMIT 1'
+    ].join(' ')).get(promo.id, req.user.id);
+    if (used) failTransaction(400, 'Ты уже активировал этот промокод');
+
+    await db.prepare([
+      'INSERT INTO promo_code_redemptions (promo_id, user_id)',
+      'VALUES (?, ?)'
+    ].join(' ')).run(promo.id, req.user.id);
+    await db.prepare('UPDATE users SET doxiki_balance = doxiki_balance + ? WHERE id = ?').run(promo.reward, req.user.id);
+    await db.prepare([
+      'INSERT INTO economy_log (id, admin_id, user_id, amount, action, note)',
+      'VALUES (?, ?, ?, ?, ?, ?)'
+    ].join(' ')).run(randomUUID(), null, req.user.id, promo.reward, 'promocode', 'Промокод ' + promo.code);
+
+    return { ok: true, code: promo.code, reward: Number(promo.reward || 0), balance: Number(user.doxiki_balance || 0) + Number(promo.reward || 0) };
+  });
+
+  let result;
+  try {
+    result = await redeem();
+  } catch (error) {
+    if (error.result) result = error.result;
+    else throw error;
+  }
+  if (!result.ok) return res.status(result.status || 400).json({ error: result.error || 'Промокод не активирован' });
+  res.json(result);
+});
+
 app.post('/api/marketplace/:itemId/buy', auth, async (req, res) => {
   const itemId = clean(req.params.itemId, 100);
 
@@ -997,9 +1109,10 @@ app.get('/api/games/state', auth, async (req, res) => {
       last_reward: claim ? Number(claim.reward || 0) : 0,
       claimed_at: claim ? claim.created_at : null
     },
-    lucky_jet: {
-      max_bet: LUCKY_JET_MAX_BET,
-      max_multiplier: LUCKY_JET_MAX_MULTIPLIER
+    roulette: {
+      max_bet: ROULETTE_MAX_BET,
+      number_multiplier: 10,
+      other_multiplier: 2
     }
   });
 });
@@ -1050,11 +1163,11 @@ app.post('/api/games/daily-wheel', auth, async (req, res) => {
   res.json(result);
 });
 
-app.post('/api/games/lucky-jet', auth, async (req, res) => {
-  const bet = parseLuckyJetBet(req.body.bet);
-  const cashout = parseLuckyJetCashout(req.body.cashout);
-  if (bet === null) return res.status(400).json({ error: 'Ставка от 1 до 100000 доксиков' });
-  if (cashout === null) return res.status(400).json({ error: 'Коэффициент от 1.01x до 3x' });
+app.post('/api/games/roulette', auth, async (req, res) => {
+  const bet = parseRouletteBet(req.body.bet);
+  const pick = normalizeRoulettePick(req.body.type, req.body.value);
+  if (bet === null) return res.status(400).json({ error: 'Ставка от 1 до 500 доксиков' });
+  if (!pick) return res.status(400).json({ error: 'Выбери число или ставку на поле рулетки' });
 
   const play = db.transaction(async () => {
     const user = await getUserById(req.user.id);
@@ -1067,9 +1180,10 @@ app.post('/api/games/lucky-jet', auth, async (req, res) => {
     ].join(' ')).run(bet, req.user.id, bet);
     if (!spend.changes) failTransaction(400, 'Не хватает доксиков');
 
-    const crash = luckyJetCrashMultiplier();
-    const won = crash >= cashout;
-    const payout = won ? Math.floor(bet * cashout) : 0;
+    const outcome = rouletteOutcome();
+    const won = roulettePickWins(pick, outcome);
+    const multiplier = pick.type === 'number' ? 10 : 2;
+    const payout = won ? bet * multiplier : 0;
     if (payout > 0) {
       await db.prepare('UPDATE users SET doxiki_balance = doxiki_balance + ? WHERE id = ?').run(payout, req.user.id);
     }
@@ -1084,11 +1198,11 @@ app.post('/api/games/lucky-jet', auth, async (req, res) => {
       null,
       req.user.id,
       delta,
-      'lucky_jet',
-      'Lucky Jet: ставка ' + bet + ', выход ' + cashout + 'x, краш ' + crash + 'x'
+      'roulette',
+      'Рулетка: ставка ' + bet + ', выбор ' + pick.label + ', выпало ' + outcome.number
     );
 
-    return { ok: true, bet, cashout, crash, won, payout, balance };
+    return { ok: true, bet, pick, outcome, multiplier, won, payout, balance };
   });
 
   let result;
@@ -1098,7 +1212,7 @@ app.post('/api/games/lucky-jet', auth, async (req, res) => {
     if (error.result) result = error.result;
     else throw error;
   }
-  if (!result.ok) return res.status(result.status || 400).json({ error: result.error || 'Lucky Jet не сработал' });
+  if (!result.ok) return res.status(result.status || 400).json({ error: result.error || 'Рулетка не сработала' });
   res.json(result);
 });
 
@@ -1205,6 +1319,49 @@ app.post('/api/admin/doxiki', auth, adminOnly, async (req, res) => {
     ok: true,
     user: { id: updated.id, username: updated.username, display_name: updated.display_name, doxiki_balance: Number(updated.doxiki_balance || 0) }
   });
+});
+
+app.post('/api/admin/promocodes', auth, adminOnly, async (req, res) => {
+  const perms = getAdminPerms(req.adminUser);
+  if (!perms.doxiki) return res.status(403).json({ error: 'У тебя нет права создавать промокоды' });
+
+  const code = normalizePromoCode(req.body.code);
+  const reward = parseDoxikiAmount(req.body.reward, false);
+  if (!code || code.length < 3) return res.status(400).json({ error: 'Промокод минимум 3 символа' });
+  if (reward === null) return res.status(400).json({ error: 'Укажи сколько доксиков выдавать' });
+
+  try {
+    await db.prepare([
+      'INSERT INTO promo_codes (id, code, reward, created_by)',
+      'VALUES (?, ?, ?, ?)'
+    ].join(' ')).run(randomUUID(), code, reward, req.user.id);
+  } catch {
+    return res.status(400).json({ error: 'Такой промокод уже есть' });
+  }
+
+  res.json({ ok: true, code, reward });
+});
+
+app.get('/api/admin/promocodes', auth, adminOnly, async (req, res) => {
+  const perms = getAdminPerms(req.adminUser);
+  if (!perms.doxiki) return res.status(403).json({ error: 'У тебя нет права смотреть промокоды' });
+
+  const rows = await db.prepare([
+    'SELECT p.id, p.code, p.reward, p.created_at, u.username AS creator_username,',
+    '(SELECT COUNT(*) FROM promo_code_redemptions r WHERE r.promo_id = p.id) AS uses_count',
+    'FROM promo_codes p',
+    'LEFT JOIN users u ON u.id = p.created_by',
+    'ORDER BY p.created_at DESC LIMIT 100'
+  ].join(' ')).all();
+
+  res.json(rows.map((row) => ({
+    id: row.id,
+    code: row.code,
+    reward: Number(row.reward || 0),
+    uses_count: Number(row.uses_count || 0),
+    creator_username: row.creator_username || '',
+    created_at: row.created_at
+  })));
 });
 
 app.post('/api/admin/access', auth, ownerOnly, async (req, res) => {
