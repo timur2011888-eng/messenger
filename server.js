@@ -4,7 +4,7 @@ const { Server } = require('socket.io');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const { randomUUID } = require('crypto');
+const { randomUUID, randomInt } = require('crypto');
 const path = require('path');
 const fsSync = require('fs');
 const os = require('os');
@@ -144,6 +144,9 @@ const onlineUsers = new Map();
 const activeCalls = new Map();
 const activeScreenShares = new Map();
 const SCREEN_SHARE_TTL_MS = 5 * 60 * 1000;
+const DAILY_WHEEL_REWARDS = [10, 20, 40, 80, 160];
+const LUCKY_JET_MAX_BET = 100000;
+const LUCKY_JET_MAX_MULTIPLIER = 3;
 
 function normalizeUsername(value) {
   return String(value || '').trim().toLowerCase();
@@ -184,6 +187,36 @@ function cleanHttpUrl(value) {
   } catch {}
 
   return '';
+}
+
+function todayKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return year + '-' + month + '-' + day;
+}
+
+function randomDailyWheelReward() {
+  return DAILY_WHEEL_REWARDS[randomInt(DAILY_WHEEL_REWARDS.length)];
+}
+
+function parseLuckyJetBet(value) {
+  const bet = Number(value);
+  if (!Number.isSafeInteger(bet) || bet < 1 || bet > LUCKY_JET_MAX_BET) return null;
+  return bet;
+}
+
+function parseLuckyJetCashout(value) {
+  const raw = Number(value);
+  if (!Number.isFinite(raw) || raw < 1.01 || raw > LUCKY_JET_MAX_MULTIPLIER) return null;
+  return Math.floor(raw * 100) / 100;
+}
+
+function luckyJetCrashMultiplier() {
+  const roll = randomInt(0, 10001) / 10000;
+  const crash = 1 + Math.pow(roll, 1.7) * (LUCKY_JET_MAX_MULTIPLIER - 1);
+  return Math.min(LUCKY_JET_MAX_MULTIPLIER, Math.max(1, Number(crash.toFixed(2))));
 }
 
 function isAdminUser(user) {
@@ -738,7 +771,7 @@ app.get('/api/marketplace', auth, async (req, res) => {
   const items = (await db.prepare([
     'SELECT id, type, title, image, price, owner_id, profile_visible,',
     'total_supply, sold_count, template_id, listed_price, listed_at, created_at, purchased_at',
-    "FROM nft_items WHERE owner_id IS NULL AND template_id = ''",
+    "FROM nft_items WHERE owner_id IS NULL AND template_id = '' AND NOT (type = 'gift' AND total_supply > 1 AND sold_count >= total_supply)",
     "ORDER BY CASE type WHEN 'gift' THEN 1 WHEN 'username' THEN 2 ELSE 3 END, created_at DESC"
   ].join(' ')).all()).map(nftItem);
 
@@ -941,6 +974,131 @@ app.post('/api/user-market/:itemId/buy', auth, async (req, res) => {
   }
 
   if (!result.ok) return res.status(result.status || 400).json({ error: result.error || 'Покупка не прошла' });
+  res.json(result);
+});
+
+// ===== GAMES =====
+app.get('/api/games/state', auth, async (req, res) => {
+  const user = await getUserById(req.user.id);
+  if (!user) return res.status(404).json({ error: 'Профиль не найден' });
+
+  const day = todayKey();
+  const claim = await db.prepare([
+    'SELECT id, reward, created_at FROM daily_wheel_claims',
+    'WHERE user_id = ? AND day_key = ? LIMIT 1'
+  ].join(' ')).get(req.user.id, day);
+
+  res.json({
+    balance: Number(user.doxiki_balance || 0),
+    wheel: {
+      day_key: day,
+      rewards: DAILY_WHEEL_REWARDS,
+      claimed_today: Boolean(claim),
+      last_reward: claim ? Number(claim.reward || 0) : 0,
+      claimed_at: claim ? claim.created_at : null
+    },
+    lucky_jet: {
+      max_bet: LUCKY_JET_MAX_BET,
+      max_multiplier: LUCKY_JET_MAX_MULTIPLIER
+    }
+  });
+});
+
+app.post('/api/games/daily-wheel', auth, async (req, res) => {
+  const spin = db.transaction(async () => {
+    const user = await getUserById(req.user.id);
+    if (!user) failTransaction(404, 'Профиль не найден');
+
+    const day = todayKey();
+    const existing = await db.prepare([
+      'SELECT reward FROM daily_wheel_claims WHERE user_id = ? AND day_key = ? LIMIT 1'
+    ].join(' ')).get(req.user.id, day);
+    if (existing) failTransaction(400, 'Колесо уже крутили сегодня');
+
+    const reward = randomDailyWheelReward();
+    await db.prepare([
+      'INSERT INTO daily_wheel_claims (id, user_id, day_key, reward)',
+      'VALUES (?, ?, ?, ?)'
+    ].join(' ')).run(randomUUID(), req.user.id, day, reward);
+    await db.prepare('UPDATE users SET doxiki_balance = doxiki_balance + ? WHERE id = ?').run(reward, req.user.id);
+    await db.prepare([
+      'INSERT INTO economy_log (id, admin_id, user_id, amount, action, note)',
+      'VALUES (?, ?, ?, ?, ?, ?)'
+    ].join(' ')).run(randomUUID(), null, req.user.id, reward, 'daily_wheel', 'Ежедневное колесо');
+
+    return {
+      ok: true,
+      reward,
+      balance: Number(user.doxiki_balance || 0) + reward,
+      wheel: {
+        day_key: day,
+        rewards: DAILY_WHEEL_REWARDS,
+        claimed_today: true,
+        last_reward: reward
+      }
+    };
+  });
+
+  let result;
+  try {
+    result = await spin();
+  } catch (error) {
+    if (error.result) result = error.result;
+    else throw error;
+  }
+  if (!result.ok) return res.status(result.status || 400).json({ error: result.error || 'Колесо не сработало' });
+  res.json(result);
+});
+
+app.post('/api/games/lucky-jet', auth, async (req, res) => {
+  const bet = parseLuckyJetBet(req.body.bet);
+  const cashout = parseLuckyJetCashout(req.body.cashout);
+  if (bet === null) return res.status(400).json({ error: 'Ставка от 1 до 100000 доксиков' });
+  if (cashout === null) return res.status(400).json({ error: 'Коэффициент от 1.01x до 3x' });
+
+  const play = db.transaction(async () => {
+    const user = await getUserById(req.user.id);
+    if (!user) failTransaction(404, 'Профиль не найден');
+    if (Number(user.doxiki_balance || 0) < bet) failTransaction(400, 'Не хватает доксиков');
+
+    const spend = await db.prepare([
+      'UPDATE users SET doxiki_balance = doxiki_balance - ?',
+      'WHERE id = ? AND doxiki_balance >= ?'
+    ].join(' ')).run(bet, req.user.id, bet);
+    if (!spend.changes) failTransaction(400, 'Не хватает доксиков');
+
+    const crash = luckyJetCrashMultiplier();
+    const won = crash >= cashout;
+    const payout = won ? Math.floor(bet * cashout) : 0;
+    if (payout > 0) {
+      await db.prepare('UPDATE users SET doxiki_balance = doxiki_balance + ? WHERE id = ?').run(payout, req.user.id);
+    }
+
+    const balance = Number(user.doxiki_balance || 0) - bet + payout;
+    const delta = payout - bet;
+    await db.prepare([
+      'INSERT INTO economy_log (id, admin_id, user_id, amount, action, note)',
+      'VALUES (?, ?, ?, ?, ?, ?)'
+    ].join(' ')).run(
+      randomUUID(),
+      null,
+      req.user.id,
+      delta,
+      'lucky_jet',
+      'Lucky Jet: ставка ' + bet + ', выход ' + cashout + 'x, краш ' + crash + 'x'
+    );
+
+    return { ok: true, bet, cashout, crash, won, payout, balance };
+  });
+
+  let result;
+  try {
+    result = await play();
+  } catch (error) {
+    if (error.result) result = error.result;
+    else throw error;
+  }
+  if (!result.ok) return res.status(result.status || 400).json({ error: result.error || 'Lucky Jet не сработал' });
   res.json(result);
 });
 
@@ -1333,6 +1491,10 @@ app.get('/api/admin/nfts', auth, adminOnly, async (req, res) => {
 
   res.json(items.map((item) => ({
     ...nftItem(item),
+    remaining: Math.max(0, Number(item.total_supply || 1) - Number(item.sold_count || 0)),
+    sold_out: item.type === 'gift' && Number(item.total_supply || 1) > 1 && Number(item.sold_count || 0) >= Number(item.total_supply || 1),
+    is_template: !item.template_id && !item.owner_id,
+    is_owned_copy: Boolean(item.owner_id),
     owner_username: item.owner_username || '',
     owner_display_name: item.owner_display_name || ''
   })));
@@ -1343,13 +1505,10 @@ app.delete('/api/admin/nfts/:itemId', auth, adminOnly, async (req, res) => {
   if (!perms.nfts) return res.status(403).json({ error: 'У тебя нет права удалять NFT' });
 
   const itemId = clean(req.params.itemId, 100);
-  const item = await db.prepare('SELECT id, template_id, type FROM nft_items WHERE id = ?').get(itemId);
+  const item = await db.prepare('SELECT id, template_id, type, owner_id FROM nft_items WHERE id = ?').get(itemId);
   if (!item) return res.status(404).json({ error: 'NFT не найден' });
 
   const remove = db.transaction(async () => {
-    if (!item.template_id && item.type === 'gift') {
-      await db.prepare('DELETE FROM nft_items WHERE template_id = ?').run(item.id);
-    }
     await db.prepare('DELETE FROM nft_items WHERE id = ?').run(item.id);
     return { ok: true };
   });

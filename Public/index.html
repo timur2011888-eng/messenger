@@ -269,11 +269,17 @@ textarea{min-height:80px;resize:vertical}
 .nft-sup{font-size:11px;color:var(--accent);background:rgba(51,144,236,.1);padding:2px 8px;border-radius:999px;display:inline-block}
 .nft-sold{font-size:11px;color:var(--red);background:rgba(229,83,59,.1);padding:2px 8px;border-radius:999px;display:inline-block}
 .rank-list,.adm-nfts{display:grid;gap:6px}
-.rank-row,.adm-nft-row{display:grid;grid-template-columns:auto 40px 1fr auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.rank-row{display:grid;grid-template-columns:auto 40px 1fr auto;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.adm-nft-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
 .rank-num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--field);color:var(--muted);font-size:12px;font-weight:800}
 .rank-main,.adm-nft-main{min-width:0}
 .rank-name,.adm-nft-title{font-size:13px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .rank-meta,.adm-nft-meta{font-size:11px;color:var(--muted);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.adm-scroll{max-height:310px;overflow:auto;padding-right:2px;min-height:0}
+.adm-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.adm-tag{font-size:10px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 7px;background:var(--field)}
+.adm-tag.good{color:var(--good)}
+.adm-tag.bad{color:var(--red)}
 
 /* ADMIN */
 .adm-g{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
@@ -289,6 +295,30 @@ textarea{min-height:80px;resize:vertical}
 .adm-ib:hover{background:var(--accent);color:var(--accent-t)}
 .adm-danger{border-color:var(--red)!important;color:var(--red)!important}
 .adm-danger:hover{background:var(--red)!important;color:#fff!important}
+
+/* GAMES */
+.game-bal{display:flex;align-items:center;justify-content:space-between;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);margin-bottom:12px}
+.game-bal span{color:var(--muted);font-size:13px}
+.game-bal strong{font-size:16px}
+.game-card{display:grid;gap:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.wheel-ring{width:min(260px,70vw);aspect-ratio:1;margin:0 auto;border-radius:50%;display:grid;place-items:center;background:conic-gradient(from -18deg,#6dc8ff 0 20%,#8b6cff 20% 40%,#31d0aa 40% 60%,#f0b94a 60% 80%,#ff5c8a 80% 100%);box-shadow:inset 0 0 0 12px rgba(0,0,0,.28),0 18px 48px rgba(0,0,0,.28);position:relative}
+.wheel-ring:after{content:'';position:absolute;top:-8px;left:50%;transform:translateX(-50%);border-left:9px solid transparent;border-right:9px solid transparent;border-top:18px solid var(--txt);filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.wheel-ring span{width:46%;height:46%;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line);font-size:26px;font-weight:900;color:var(--txt)}
+.wheel-ring.spin{animation:wheelSpin .9s cubic-bezier(.2,.8,.2,1)}
+@keyframes wheelSpin{from{transform:rotate(0)}to{transform:rotate(1080deg)}}
+.wheel-rewards{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.game-pill{padding:7px 6px;border:1px solid var(--line);border-radius:8px;background:var(--field);font-size:12px;text-align:center;color:var(--muted);font-weight:700}
+.game-pill.on{color:var(--accent);border-color:var(--accent);background:rgba(51,144,236,.12)}
+.game-status{min-height:22px;color:var(--muted);font-size:13px;text-align:center}
+.jet-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.jet-stage{height:180px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,rgba(109,200,255,.10),rgba(255,255,255,.04));position:relative;overflow:hidden}
+.jet-line{position:absolute;left:18px;right:18px;bottom:38px;height:2px;background:linear-gradient(90deg,var(--accent),transparent)}
+.jet-plane{position:absolute;left:18px;bottom:38px;font-size:34px;transform:translate(0,0) rotate(-10deg);transition:transform .55s ease}
+.jet-stage.fly .jet-plane{transform:translate(65px,-70px) rotate(-16deg)}
+.jet-stage.win .jet-plane{transform:translate(150px,-115px) rotate(-20deg)}
+.jet-stage.lose .jet-plane{transform:translate(118px,10px) rotate(26deg)}
+.jet-x{position:absolute;right:16px;top:14px;font-size:30px;font-weight:900;color:var(--accent)}
+.jet-result{font-size:13px;color:var(--muted);min-height:20px}
 
 /* CALL UI */
 .call-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(12px)}
@@ -330,6 +360,198 @@ textarea{min-height:80px;resize:vertical}
 ::-webkit-scrollbar-thumb{background:rgba(124,133,148,.3);border-radius:99px}
 ::-webkit-scrollbar-track{background:0}
 
+/* GLASS BLACK SKIN */
+body.t-midnight{
+  --bg:#030407;
+  --panel:rgba(16,18,25,.72);
+  --panel2:rgba(255,255,255,.075);
+  --field:rgba(255,255,255,.085);
+  --txt:#f4f7fb;
+  --muted:#96a0b4;
+  --line:rgba(255,255,255,.12);
+  --accent:#6dc8ff;
+  --accent-t:#031019;
+  --bubble-out:linear-gradient(135deg,#4bbcff,#7c5cff);
+  --bubble-in:rgba(255,255,255,.105);
+  --shadow:0 20px 70px rgba(0,0,0,.46);
+}
+body.t-midnight{
+  background:
+    linear-gradient(135deg,rgba(109,200,255,.12),transparent 28%),
+    linear-gradient(225deg,rgba(124,92,255,.10),transparent 32%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.022) 0 1px,transparent 1px 70px),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 70px),
+    #030407;
+}
+body.t-midnight .auth{background:transparent}
+body.t-midnight .auth-box,
+body.t-midnight .nav-rail,
+body.t-midnight .side,
+body.t-midnight .ch,
+body.t-midnight .chat-search,
+body.t-midnight .reply-bar,
+body.t-midnight .comp,
+body.t-midnight .mdl,
+body.t-midnight .toast,
+body.t-midnight .share-request,
+body.t-midnight .fx-banner{
+  background:linear-gradient(180deg,rgba(22,25,35,.78),rgba(12,14,20,.68));
+  border-color:rgba(255,255,255,.13);
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(20px) saturate(1.18);
+}
+body.t-midnight .lay{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.035),transparent 34%),
+    rgba(0,0,0,.14);
+}
+body.t-midnight .nav-rail{border-right:1px solid rgba(255,255,255,.14)}
+body.t-midnight .nav-rail .btn-icon,
+body.t-midnight .btn-icon{
+  background:rgba(255,255,255,.075);
+  border-color:rgba(255,255,255,.13);
+  color:#c9d4e8;
+}
+body.t-midnight .nav-rail .btn-icon:hover,
+body.t-midnight .btn-icon:hover{
+  background:rgba(109,200,255,.16);
+  border-color:rgba(109,200,255,.42);
+  color:#fff;
+}
+body.t-midnight .side{
+  border-right:1px solid rgba(255,255,255,.13);
+}
+body.t-midnight .side-top,
+body.t-midnight .srch,
+body.t-midnight .ch,
+body.t-midnight .chat-search,
+body.t-midnight .reply-bar,
+body.t-midnight .comp{
+  border-color:rgba(255,255,255,.10);
+}
+body.t-midnight .me-chip{
+  border-radius:12px;
+  padding:7px;
+}
+body.t-midnight .me-chip:hover,
+body.t-midnight .cr:hover{
+  background:rgba(255,255,255,.075);
+  border-color:rgba(255,255,255,.12);
+}
+body.t-midnight .cr{
+  border-radius:14px;
+  margin:2px 0;
+  transition:background .14s,border-color .14s,transform .14s;
+}
+body.t-midnight .cr:hover{transform:translateX(2px)}
+body.t-midnight .cr.on{
+  background:linear-gradient(135deg,rgba(109,200,255,.19),rgba(124,92,255,.13));
+  border-color:rgba(109,200,255,.36);
+  box-shadow:0 10px 28px rgba(0,0,0,.22);
+}
+body.t-midnight input,
+body.t-midnight textarea,
+body.t-midnight select{
+  background:rgba(255,255,255,.075);
+  border-color:rgba(255,255,255,.13);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+body.t-midnight input:focus,
+body.t-midnight textarea:focus{
+  border-color:rgba(109,200,255,.68);
+  box-shadow:0 0 0 3px rgba(109,200,255,.16),inset 0 1px 0 rgba(255,255,255,.05);
+}
+body.t-midnight .chat{
+  background:
+    linear-gradient(180deg,rgba(109,200,255,.055),transparent 24%),
+    repeating-linear-gradient(135deg,rgba(255,255,255,.022) 0 1px,transparent 1px 18px),
+    transparent;
+}
+body.t-midnight .chat-empty div{
+  padding:10px 16px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:999px;
+  background:rgba(255,255,255,.055);
+  backdrop-filter:blur(16px);
+}
+body.t-midnight .msgs{padding:18px 18px 14px}
+body.t-midnight .bbl{
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 10px 28px rgba(0,0,0,.22);
+  backdrop-filter:blur(12px);
+}
+body.t-midnight .me .bbl{
+  border-color:rgba(109,200,255,.25);
+  color:#fff;
+}
+body.t-midnight .them .bbl{
+  background:rgba(255,255,255,.105);
+  color:#f4f7fb;
+}
+body.t-midnight .msg-snd{color:#8fd6ff}
+body.t-midnight .msg-act,
+body.t-midnight .react,
+body.t-midnight .sr-row,
+body.t-midnight .lib-row,
+body.t-midnight .nft-c,
+body.t-midnight .rank-row,
+body.t-midnight .adm-nft-row,
+body.t-midnight .adm-ur,
+body.t-midnight .game-bal,
+body.t-midnight .game-card,
+body.t-midnight .game-pill,
+body.t-midnight .jet-stage,
+body.t-midnight .mkt-w,
+body.t-midnight .mkt-tabs,
+body.t-midnight .mkt-fb{
+  background:rgba(255,255,255,.075);
+  border-color:rgba(255,255,255,.12);
+  backdrop-filter:blur(14px);
+}
+body.t-midnight .btn-p{
+  background:linear-gradient(135deg,#6dc8ff,#8b6cff);
+  color:#031019;
+  box-shadow:0 10px 28px rgba(109,200,255,.18);
+}
+body.t-midnight .btn-s{
+  background:rgba(255,255,255,.075);
+  border-color:rgba(255,255,255,.13);
+}
+body.t-midnight .comp{
+  margin:0 10px 10px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+}
+body.t-midnight .comp input{
+  border-radius:999px;
+  background:rgba(0,0,0,.22);
+}
+body.t-midnight .comp .snd{
+  background:linear-gradient(135deg,#6dc8ff,#8b6cff);
+  color:#06111c;
+}
+body.t-midnight .comp .mic,
+body.t-midnight .comp .file{
+  background:rgba(255,255,255,.085);
+}
+body.t-midnight .overlay{
+  background:rgba(0,0,0,.68);
+  backdrop-filter:blur(10px);
+}
+body.t-midnight .mdl{
+  border-radius:16px;
+}
+body.t-midnight .mdl-h{
+  background:rgba(12,14,20,.72);
+  border-color:rgba(255,255,255,.10);
+  backdrop-filter:blur(18px);
+}
+body.t-midnight .pv .btn-icon,
+body.t-midnight .pv .btn-s,
+body.t-midnight .pv .btn-p{
+  backdrop-filter:none;
+}
+
 @media(max-width:780px){
   .lay{grid-template-columns:56px minmax(0,1fr)}
   .nav-rail:hover{width:190px}
@@ -343,6 +565,7 @@ textarea{min-height:80px;resize:vertical}
   .msg{max-width:85%}
   .adm-g{grid-template-columns:1fr}
   .nft-g{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .jet-grid{grid-template-columns:1fr}
   .chat{height:100vh;height:100dvh}
 }
 </style>
@@ -376,6 +599,8 @@ textarea{min-height:80px;resize:vertical}
   <nav class="nav-rail">
     <button id="b-mkt" class="btn-icon" title="Маркетплейс"><span class="ico">$</span><span class="lbl">Маркетплейс</span></button>
     <button id="b-music" class="btn-icon" title="Библиотека музыки"><span class="ico">♪</span><span class="lbl">Музыка</span></button>
+    <button id="b-wheel" class="btn-icon" title="Ежедневное колесо"><span class="ico">◎</span><span class="lbl">Колесо</span></button>
+    <button id="b-jet" class="btn-icon" title="Lucky Jet"><span class="ico">↗</span><span class="lbl">Lucky Jet</span></button>
     <button id="b-adm" class="btn-icon" title="Админ" hidden><span class="ico">A</span><span class="lbl">Админ</span></button>
     <button id="b-blocks" class="btn-icon" title="Черный список"><span class="ico">⛔</span><span class="lbl">Черный список</span></button>
     <button id="b-new" class="btn-icon" title="Новый чат"><span class="ico">+</span><span class="lbl">Новый чат</span></button>
@@ -521,6 +746,45 @@ textarea{min-height:80px;resize:vertical}
 </section>
 </div>
 
+<!-- DAILY WHEEL -->
+<div id="m-wheel" class="overlay" hidden>
+<section class="mdl sm">
+  <header class="mdl-h"><h2>Ежедневное колесо</h2><button class="btn-icon" data-close="m-wheel">×</button></header>
+  <div class="mdl-b">
+    <div class="game-bal"><span>Баланс</span><strong id="wheel-bal">0 доксиков</strong></div>
+    <div class="game-card">
+      <div id="wheel-ring" class="wheel-ring"><span id="wheel-win">?</span></div>
+      <div id="wheel-rewards" class="wheel-rewards"></div>
+      <div id="wheel-status" class="game-status">Загрузка...</div>
+      <button id="wheel-spin" class="btn btn-p" type="button">Крутить</button>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- LUCKY JET -->
+<div id="m-jet" class="overlay" hidden>
+<section class="mdl sm">
+  <header class="mdl-h"><h2>Lucky Jet</h2><button class="btn-icon" data-close="m-jet">×</button></header>
+  <div class="mdl-b">
+    <div class="game-bal"><span>Баланс</span><strong id="jet-bal">0 доксиков</strong></div>
+    <div class="game-card">
+      <div id="jet-stage" class="jet-stage">
+        <div class="jet-x" id="jet-x">1.00x</div>
+        <div class="jet-line"></div>
+        <div class="jet-plane">↗</div>
+      </div>
+      <div class="jet-grid">
+        <label class="fld"><span>Ставка</span><input id="jet-bet" type="number" min="1" max="100000" value="100"></label>
+        <label class="fld"><span>Выход x</span><input id="jet-cash" type="number" min="1.01" max="3" step="0.01" value="2"></label>
+      </div>
+      <div id="jet-result" class="jet-result">Макс ставка 100000, максимум 3x.</div>
+      <button id="jet-play" class="btn btn-p" type="button">Полетели</button>
+    </div>
+  </div>
+</section>
+</div>
+
 <!-- ADMIN -->
 <div id="m-adm" class="overlay" hidden>
 <section class="mdl lg">
@@ -580,12 +844,12 @@ textarea{min-height:80px;resize:vertical}
       <div id="adm-log-box" class="adm-s">
         <h3>История доксиков</h3>
         <button id="adm-log-load" class="btn btn-s" type="button">Обновить историю</button>
-        <div id="adm-log-list" class="adm-nfts"></div>
+        <div id="adm-log-list" class="adm-nfts adm-scroll"></div>
       </div>
       <div id="adm-nft-box" class="adm-s">
         <h3>🧹 NFT и подарки</h3>
         <button id="adm-nft-load" class="btn btn-s" type="button">Обновить список</button>
-        <div id="adm-nft-list" class="adm-nfts"></div>
+        <div id="adm-nft-list" class="adm-nfts adm-scroll"></div>
       </div>
       <div class="adm-s">
         <form id="f-acc" class="adm-s">
@@ -655,6 +919,7 @@ textarea{min-height:80px;resize:vertical}
 <script>
 var T=localStorage.getItem('a:t'),M=J(localStorage.getItem('a:m')),S=null,chats=[],CC=null,CID=null,VP=null,
     MKS={tab:'shop',fil:'all',items:[],userItems:[],inv:[],leaders:[]},LSI=null,PD={theme:'midnight',accent:'#3390ec'},
+    GMS={wheel:null,jet:null,balance:0},
     callPeer=null,callPC=null,callStream=null,callTimer=null,callSec=0,callIncoming=false,
     shareReq=null,sharePC=null,shareStream=null,shareMode='',shareRequestId='',
     voiceRec=null,voiceStream=null,voiceChunks=[],voiceStarted=0,voiceChat=null,voiceSending=false,
@@ -1519,15 +1784,15 @@ function ensureSocialEdit(){
   title.textContent='Соцсети';
   var wrap=document.createElement('div');wrap.className='stack';
   for(let slot=1;slot<=3;slot++){
-    var group=document.createElement('div');group.className='stack';group.style.gap='8px';
-    var lab=document.createElement('label');lab.className='fld';
-    var sp=document.createElement('span');sp.textContent='Ссылка '+slot;
-    var inp=document.createElement('input');inp.id='e-social-url-'+slot;inp.maxLength=2000;inp.placeholder='https://...';
+    let group=document.createElement('div');group.className='stack';group.style.gap='8px';
+    let lab=document.createElement('label');lab.className='fld';
+    let sp=document.createElement('span');sp.textContent='Ссылка '+slot;
+    let inp=document.createElement('input');inp.id='e-social-url-'+slot;inp.maxLength=2000;inp.placeholder='https://...';
     lab.append(sp,inp);
-    var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap';
-    var prev=document.createElement('span');prev.id='e-social-prev-'+slot;prev.className='soc-preview';prev.textContent='↗';
-    var file=document.createElement('input');file.id='e-social-file-'+slot;file.type='file';file.accept='image/*';file.hidden=true;
-    var btn=document.createElement('button');btn.className='btn btn-s';btn.type='button';btn.id='e-social-btn-'+slot;btn.style.fontSize='13px';btn.textContent='Иконка '+slot;
+    let row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+    let prev=document.createElement('span');prev.id='e-social-prev-'+slot;prev.className='soc-preview';prev.textContent='↗';
+    let file=document.createElement('input');file.id='e-social-file-'+slot;file.type='file';file.accept='image/*';file.hidden=true;
+    let btn=document.createElement('button');btn.className='btn btn-s';btn.type='button';btn.id='e-social-btn-'+slot;btn.style.fontSize='13px';btn.textContent='Иконка '+slot;
     btn.onclick=()=>file.click();
     file.onchange=async()=>{
       var f=file.files[0];if(!f)return;
@@ -1696,6 +1961,80 @@ async function startCh(user){
   }catch(e){toast(e.message)}
 }
 
+// GAMES
+$('b-wheel').onclick=async()=>{$('m-wheel').hidden=false;await loadGamesState()};
+$('b-jet').onclick=async()=>{$('m-jet').hidden=false;await loadGamesState()};
+
+function setBalance(v){
+  if(M){M.doxiki_balance=Number(v||0);localStorage.setItem('a:m',JSON.stringify(M));upMe()}
+  GMS.balance=Number(v||0);
+  if($('mkt-bal'))tx('mkt-bal',fmtD(GMS.balance));
+  if($('wheel-bal'))tx('wheel-bal',fmtD(GMS.balance));
+  if($('jet-bal'))tx('jet-bal',fmtD(GMS.balance));
+}
+
+async function loadGamesState(){
+  try{
+    var d=await api('/api/games/state');
+    GMS.wheel=d.wheel||null;GMS.jet=d.lucky_jet||null;setBalance(d.balance||0);
+    renderWheel();renderJet();
+  }catch(e){toast(e.message)}
+}
+
+function renderWheel(){
+  var w=GMS.wheel||{rewards:[10,20,40,80,160],claimed_today:false,last_reward:0};
+  $('wheel-rewards').innerHTML='';
+  (w.rewards||[10,20,40,80,160]).forEach(v=>{
+    var p=document.createElement('div');p.className='game-pill'+(Number(w.last_reward||0)===Number(v)?' on':'');p.textContent='+'+v;
+    $('wheel-rewards').appendChild(p);
+  });
+  $('wheel-win').textContent=w.last_reward?('+'+w.last_reward):'?';
+  $('wheel-status').textContent=w.claimed_today?(w.last_reward?'Сегодня уже выпало +'+w.last_reward+' доксиков':'Сегодня уже крутили'):'Можно крутить один раз в день';
+  $('wheel-spin').disabled=!!w.claimed_today;
+}
+
+async function spinWheel(){
+  var btn=$('wheel-spin'),ring=$('wheel-ring');
+  busy(btn,true,'Крутим...');
+  ring.classList.remove('spin');void ring.offsetWidth;ring.classList.add('spin');
+  try{
+    var d=await api('/api/games/daily-wheel',{method:'POST'});
+    setTimeout(()=>{GMS.wheel=d.wheel;setBalance(d.balance||0);renderWheel();toast('Выпало +'+d.reward+' доксиков')},650);
+  }catch(e){ring.classList.remove('spin');toast(e.message);await loadGamesState()}
+  finally{setTimeout(()=>busy(btn,false),750)}
+}
+$('wheel-spin').onclick=spinWheel;
+
+function renderJet(){
+  tx('jet-bal',fmtD(GMS.balance));
+  $('jet-stage').className='jet-stage';
+  tx('jet-x','1.00x');
+  $('jet-result').textContent='Макс ставка 100000, максимум 3x.';
+  if(GMS.jet){
+    $('jet-bet').max=GMS.jet.max_bet||100000;
+    $('jet-cash').max=GMS.jet.max_multiplier||3;
+  }
+}
+
+async function playJet(){
+  var bet=Number($('jet-bet').value),cashout=Number($('jet-cash').value),btn=$('jet-play'),stage=$('jet-stage');
+  busy(btn,true,'Летим...');
+  stage.className='jet-stage fly';
+  tx('jet-result','Самолет набирает высоту...');
+  try{
+    var d=await api('/api/games/lucky-jet',{method:'POST',body:{bet:bet,cashout:cashout}});
+    setTimeout(()=>{
+      setBalance(d.balance||0);
+      stage.className='jet-stage '+(d.won?'win':'lose');
+      tx('jet-x',Number(d.crash||1).toFixed(2)+'x');
+      $('jet-result').textContent=d.won?('Успел выйти на '+Number(d.cashout).toFixed(2)+'x, выигрыш '+fmtD(d.payout)):('Краш на '+Number(d.crash).toFixed(2)+'x, ставка сгорела');
+      toast(d.won?'Lucky Jet выиграл':'Lucky Jet улетел вниз');
+    },550);
+  }catch(e){stage.className='jet-stage';toast(e.message)}
+  finally{setTimeout(()=>busy(btn,false),700)}
+}
+$('jet-play').onclick=playJet;
+
 // MARKETPLACE
 $('b-mkt').onclick=async()=>{$('m-mkt').hidden=false;await loadMkt()};
 
@@ -1703,8 +2042,8 @@ async function loadMkt(){
   try{
     var d=await api('/api/marketplace');
     MKS.items=d.items||[];MKS.userItems=d.user_items||[];MKS.inv=d.inventory||[];MKS.leaders=d.leaders||[];
-    M.doxiki_balance=d.balance||0;M.is_admin=Boolean(d.is_admin);
-    localStorage.setItem('a:m',JSON.stringify(M));upMe();renderMkt();
+    if(M)M.is_admin=Boolean(d.is_admin);
+    setBalance(d.balance||0);renderMkt();
   }catch(e){toast(e.message)}
 }
 
@@ -1790,8 +2129,8 @@ function renderNL(id,items,owned,mode){
   });
 }
 
-async function buyNft(id){try{var d=await api('/api/marketplace/'+encodeURIComponent(id)+'/buy',{method:'POST'});M.doxiki_balance=d.balance||0;localStorage.setItem('a:m',JSON.stringify(M));upMe();toast('NFT куплен');await loadMkt()}catch(e){toast(e.message)}}
-async function buyUserNft(id){try{var d=await api('/api/user-market/'+encodeURIComponent(id)+'/buy',{method:'POST'});M.doxiki_balance=d.balance||0;localStorage.setItem('a:m',JSON.stringify(M));upMe();toast('NFT куплен на бирже');await loadMkt()}catch(e){toast(e.message)}}
+async function buyNft(id){try{var d=await api('/api/marketplace/'+encodeURIComponent(id)+'/buy',{method:'POST'});setBalance(d.balance||0);toast('NFT куплен');await loadMkt()}catch(e){toast(e.message)}}
+async function buyUserNft(id){try{var d=await api('/api/user-market/'+encodeURIComponent(id)+'/buy',{method:'POST'});setBalance(d.balance||0);toast('NFT куплен на бирже');await loadMkt()}catch(e){toast(e.message)}}
 async function toggleNft(it){try{await api('/api/profile/nfts/'+encodeURIComponent(it.id),{method:'PUT',body:{visible:!it.profile_visible}});toast(it.profile_visible?'Убрано':'Добавлено');await loadMkt()}catch(e){toast(e.message)}}
 async function listNft(it){
   var price=Number(prompt('Цена в доксиках',it.price||100));
@@ -1888,19 +2227,30 @@ function renderAdminNfts(items){
     if(it.image){var im=document.createElement('img');im.src=it.image;av.appendChild(im)}else av.textContent=it.type==='username'?'@':it.type==='number'?'#':'NFT';
     var main=document.createElement('div');main.className='adm-nft-main';
     var title=document.createElement('div');title.className='adm-nft-title';title.textContent=it.title;
-    var owner=it.owner_username?'@'+it.owner_username:'в продаже';
     var type=it.type==='gift'?'подарок':it.type==='username'?'юз':'номер';
+    var owner=it.owner_username?'@'+it.owner_username:(it.type==='gift'&&it.total_supply>1?'без владельца':'в продаже');
     var meta=document.createElement('div');meta.className='adm-nft-meta';meta.textContent=type+' · '+owner+' · '+fmtD(it.price);
-    main.append(title,meta);
-    var del=document.createElement('button');del.className='adm-ib adm-danger';del.textContent='Удалить';
+    var tags=document.createElement('div');tags.className='adm-tags';
+    function tag(text,cls){var t=document.createElement('span');t.className='adm-tag '+(cls||'');t.textContent=text;tags.appendChild(t)}
+    if(it.owner_username)tag('владелец '+owner,'good');
+    else tag(it.type==='gift'&&it.total_supply>1?'маркет-тираж':'маркет');
+    if(it.type==='gift'&&it.total_supply>1){
+      var left=Number(it.remaining!==undefined?it.remaining:(it.total_supply-it.sold_count));
+      tag(left>0?'осталось '+left+'/'+it.total_supply:'распродано',left>0?'good':'bad');
+    }
+    if(it.listed_price>0)tag('на бирже '+fmtD(it.listed_price));
+    main.append(title,meta,tags);
+    var del=document.createElement('button');del.className='adm-ib adm-danger';
+    del.textContent=it.owner_username?'Удалить у @'+it.owner_username:(it.type==='gift'&&it.total_supply>1?'С маркета':'Удалить');
     del.onclick=()=>deleteAdminNft(it);
     r.append(av,main,del);box.appendChild(r);
   });
 }
 
 async function deleteAdminNft(it){
-  if(!confirm('Удалить NFT "'+it.title+'"?'))return;
-  try{await api('/api/admin/nfts/'+encodeURIComponent(it.id),{method:'DELETE'});toast('NFT удален');await loadAdminNfts();if(!$('m-mkt').hidden)await loadMkt()}catch(e){toast(e.message)}
+  var msg=it.owner_username?'Удалить NFT "'+it.title+'" у @'+it.owner_username+'?':'Удалить NFT "'+it.title+'" с маркета? Купленные копии останутся у владельцев.';
+  if(!confirm(msg))return;
+  try{await api('/api/admin/nfts/'+encodeURIComponent(it.id),{method:'DELETE'});toast(it.owner_username?'NFT удален у пользователя':'NFT удален с маркета');await loadAdminNfts();if(!$('m-mkt').hidden)await loadMkt()}catch(e){toast(e.message)}
 }
 $('adm-nft-load').onclick=()=>loadAdminNfts();
 

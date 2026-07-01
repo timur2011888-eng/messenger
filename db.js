@@ -165,6 +165,16 @@ function sqliteSchema() {
     '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL',
     ');',
     '',
+    'CREATE TABLE IF NOT EXISTS daily_wheel_claims (',
+    '  id TEXT PRIMARY KEY,',
+    '  user_id TEXT NOT NULL,',
+    '  day_key TEXT NOT NULL,',
+    '  reward INTEGER NOT NULL,',
+    '  created_at ' + sqliteNowDefault() + ',',
+    '  UNIQUE(user_id, day_key),',
+    '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+    ');',
+    '',
     'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at);',
     'CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id);',
     'CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id);',
@@ -172,7 +182,8 @@ function sqliteSchema() {
     'CREATE INDEX IF NOT EXISTS idx_users_search ON users(username, display_name);',
     'CREATE INDEX IF NOT EXISTS idx_music_library_time ON music_library(created_at);',
     'CREATE INDEX IF NOT EXISTS idx_nft_market ON nft_items(owner_id, type, created_at);',
-    'CREATE INDEX IF NOT EXISTS idx_economy_log_time ON economy_log(created_at);'
+    'CREATE INDEX IF NOT EXISTS idx_economy_log_time ON economy_log(created_at);',
+    'CREATE INDEX IF NOT EXISTS idx_daily_wheel_user_day ON daily_wheel_claims(user_id, day_key);'
   ].join('\n');
 }
 
@@ -335,6 +346,17 @@ function postgresStatements() {
       '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL',
       ')'
     ].join('\n'),
+    [
+      'CREATE TABLE IF NOT EXISTS daily_wheel_claims (',
+      '  id TEXT PRIMARY KEY,',
+      '  user_id TEXT NOT NULL,',
+      '  day_key TEXT NOT NULL,',
+      '  reward BIGINT NOT NULL,',
+      '  created_at ' + pgNowDefault() + ',',
+      '  UNIQUE(user_id, day_key),',
+      '  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
+      ')'
+    ].join('\n'),
     'CREATE INDEX IF NOT EXISTS idx_messages_chat_time ON messages(chat_id, created_at)',
     'CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_members(user_id)',
     'CREATE INDEX IF NOT EXISTS idx_message_reactions_message ON message_reactions(message_id)',
@@ -342,7 +364,8 @@ function postgresStatements() {
     'CREATE INDEX IF NOT EXISTS idx_users_search ON users(username, display_name)',
     'CREATE INDEX IF NOT EXISTS idx_music_library_time ON music_library(created_at)',
     'CREATE INDEX IF NOT EXISTS idx_nft_market ON nft_items(owner_id, type, created_at)',
-    'CREATE INDEX IF NOT EXISTS idx_economy_log_time ON economy_log(created_at)'
+    'CREATE INDEX IF NOT EXISTS idx_economy_log_time ON economy_log(created_at)',
+    'CREATE INDEX IF NOT EXISTS idx_daily_wheel_user_day ON daily_wheel_claims(user_id, day_key)'
   ];
 }
 
